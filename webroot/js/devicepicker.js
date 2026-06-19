@@ -11,23 +11,23 @@
   const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
   document.body.insertAdjacentHTML('beforeend', `
-    <div class="bottom-sheet sheet--picker" id="devPickerSheet" role="dialog" aria-modal="true" aria-label="Device profiles">
+    <div class="bottom-sheet sheet--picker" id="devPickerSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:devpicker_title" aria-label="设备配置">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" data-i18n="devpicker_title">Device Profiles</span>
-        <button class="sheet-header__close" id="dpClose" aria-label="Close">
+        <span class="sheet-header__title" data-i18n="devpicker_title">设备配置</span>
+        <button class="sheet-header__close" id="dpClose" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="picker-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="dpSearch" autocomplete="off" data-i18n-attr="placeholder:devpicker_search" placeholder="Search devices…" />
+        <input type="search" id="dpSearch" autocomplete="off" data-i18n-attr="placeholder:devpicker_search" placeholder="搜索设备…" />
       </div>
       <div class="picker-controls">
         <div class="pk-spacer"></div>
-        <button type="button" class="pk-sort" id="dpSortBtn" aria-label="Sort A→Z / Z→A">
+        <button type="button" class="pk-sort" id="dpSortBtn" data-i18n-attr="aria-label:aria_sort_toggle" aria-label="按名称正序/倒序排序">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v14"/><path d="M4 8l3-3 3 3"/><path d="M14 7h6M14 12h4M14 17h2"/></svg>
-          <span id="dpSortLabel" data-i18n="sort_name">Name (A→Z)</span>
+          <span id="dpSortLabel" data-i18n="sort_name">名称 (A→Z)</span>
         </button>
       </div>
       <div class="picker-body">

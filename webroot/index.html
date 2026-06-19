@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="zh" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <!-- Stop the WebView caching the SPA so code updates take effect on reopen
@@ -11,7 +11,7 @@
   <meta name="color-scheme" content="dark light" />
   <!-- Tints the system status bar to the theme base (kept in sync in theme.js) -->
   <meta name="theme-color" content="#0A0A12" />
-  <title>COPG — Module Dashboard</title>
+  <title>COPG - 模块面板</title>
   <!-- KsuWebUI host API: injects --window-inset-{top,right,bottom,left} for the
        real system-bar insets and switches the WebView to edge-to-edge with
        transparent bars. Without it KsuWebUI draws opaque (black) system bars.
@@ -167,7 +167,7 @@
 
         <!-- Console -->
         <div class="section-label" data-i18n="label_tools">Tools</div>
-        <div class="glass-card console-card" id="consoleCard" role="button" tabindex="0" aria-label="Open Console">
+        <div class="glass-card console-card" id="consoleCard" role="button" tabindex="0" data-i18n-attr="aria-label:console_open" aria-label="打开控制台">
           <div class="console-card__inner">
             <div class="console-card__icon-wrap">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -191,8 +191,8 @@
     <section class="page page--library" id="pageLibrary">
       <div class="scroll-area">
         <div class="page-header">
-          <h2 class="page-header__title" data-i18n="page_library">Library</h2>
-          <button class="page-header__action" id="libBackupBtn" type="button" data-i18n-attr="aria-label:lib_backup" aria-label="Backup &amp; Restore">
+          <h2 class="page-header__title" data-i18n="page_library">库</h2>
+          <button class="page-header__action" id="libBackupBtn" type="button" data-i18n-attr="aria-label:lib_backup" aria-label="备份与同步">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M7 18h9a4 4 0 0 0 .5-7.97 6 6 0 0 0-11.3-1.2A3.5 3.5 0 0 0 6 18"/>
               <line x1="9.6" y1="15" x2="9.6" y2="9.8"/><polyline points="7.9 11.4 9.6 9.6 11.3 11.4"/>
@@ -235,7 +235,7 @@
               </svg>
               <input type="search" class="lib-search__input" id="deviceSearch" autocomplete="off" data-i18n-attr="placeholder:search_devices" placeholder="Search devices…" />
             </div>
-            <button class="add-pill" id="addDeviceBtn" type="button" data-i18n-attr="aria-label:add_device" aria-label="Add Device">
+            <button class="add-pill" id="addDeviceBtn" type="button" data-i18n-attr="aria-label:add_device" aria-label="添加设备">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span class="add-pill__label" data-i18n="add_short">Add</span>
             </button>
@@ -250,7 +250,7 @@
               </svg>
               <input type="search" class="lib-search__input" id="packageSearch" autocomplete="off" data-i18n-attr="placeholder:search_packages" placeholder="Search packages…" />
             </div>
-            <button class="add-pill" id="addPackageBtn" type="button" data-i18n-attr="aria-label:add_package" aria-label="Add Package">
+            <button class="add-pill" id="addPackageBtn" type="button" data-i18n-attr="aria-label:add_package" aria-label="添加应用包">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span class="add-pill__label" data-i18n="add_short">Add</span>
             </button>
@@ -266,29 +266,29 @@
     <section class="page page--settings" id="pageSettings">
       <div class="scroll-area">
         <div class="page-header">
-          <h2 class="page-header__title" data-i18n="page_settings">Settings</h2>
+          <h2 class="page-header__title" data-i18n="page_settings">设置</h2>
         </div>
 
         <!-- Appearance -->
         <div class="section-label" data-i18n="label_appearance">Appearance</div>
         <div class="glass-card settings-card">
           <!-- Theme row → opens sheet -->
-          <div class="setting-row" id="themeSettingRow" role="button" tabindex="0" aria-label="Choose theme">
+          <div class="setting-row" id="themeSettingRow" role="button" tabindex="0" data-i18n-attr="aria-label:aria_choose_theme" aria-label="选择主题">
             <span class="setting-row__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </span>
-            <span class="setting-row__label" data-i18n="set_theme">Theme</span>
-            <span class="setting-row__value-hint" id="themeRowHint">Dark</span>
+            <span class="setting-row__label" data-i18n="set_theme">主题</span>
+            <span class="setting-row__value-hint" id="themeRowHint">深色</span>
             <svg class="setting-row__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
           <div class="sys-divider"></div>
           <!-- Language row → opens sheet -->
-          <div class="setting-row" id="langSettingRow" role="button" tabindex="0" aria-label="Choose language">
+          <div class="setting-row" id="langSettingRow" role="button" tabindex="0" data-i18n-attr="aria-label:aria_choose_language" aria-label="选择语言">
             <span class="setting-row__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>
             </span>
-            <span class="setting-row__label" data-i18n="set_language">Language</span>
-            <span class="setting-row__value-hint" id="langRowHint">English</span>
+            <span class="setting-row__label" data-i18n="set_language">语言</span>
+            <span class="setting-row__value-hint" id="langRowHint">中文</span>
             <svg class="setting-row__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
           <div class="sys-divider"></div>
@@ -297,8 +297,8 @@
             <span class="setting-row__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
             </span>
-            <span class="setting-row__label" data-i18n="set_fullscreen">Fullscreen</span>
-            <label class="toggle" aria-label="Fullscreen mode">
+            <span class="setting-row__label" data-i18n="set_fullscreen">全屏</span>
+            <label class="toggle" data-i18n-attr="aria-label:aria_fullscreen_mode" aria-label="全屏模式">
               <input type="checkbox" id="fullscreenToggle"/>
               <span class="toggle__track"><span class="toggle__thumb"></span></span>
             </label>
@@ -312,8 +312,8 @@
             <span class="setting-row__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </span>
-            <span class="setting-row__label" data-i18n="set_debug">Debug Logs</span>
-            <label class="toggle" aria-label="Enable debug logs">
+            <span class="setting-row__label" data-i18n="set_debug">调试日志</span>
+            <label class="toggle" data-i18n-attr="aria-label:aria_enable_debug_logs" aria-label="启用调试日志">
               <input type="checkbox" id="debugToggle"/>
               <span class="toggle__track"><span class="toggle__thumb"></span></span>
             </label>
@@ -322,7 +322,7 @@
 
         <!-- About (module info) -->
         <div class="section-label" data-i18n="label_about">About</div>
-        <div class="glass-card about-card" id="aboutCard" role="button" tabindex="0" aria-expanded="false" aria-label="Module info">
+        <div class="glass-card about-card" id="aboutCard" role="button" tabindex="0" aria-expanded="false" data-i18n-attr="aria-label:aria_module_info" aria-label="模块信息">
           <div class="about-header">
             <div class="about-header__icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><circle cx="12" cy="8" r=".6" fill="currentColor" stroke="none"/></svg>
@@ -369,9 +369,9 @@
   </main>
 
   <!-- ───────── BOTTOM NAV ───────── -->
-  <nav class="bottom-nav" id="bottomNav" aria-label="Main navigation">
+  <nav class="bottom-nav" id="bottomNav" data-i18n-attr="aria-label:aria_main_navigation" aria-label="主导航">
     <div class="bottom-nav__dock">
-      <button class="nav-item active" data-page="home" aria-label="Home" aria-current="page">
+      <button class="nav-item active" data-page="home" data-i18n-attr="aria-label:nav_home" aria-label="主页" aria-current="page">
         <span class="nav-item__icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9.8 12 3l9 6.8"/>
@@ -382,7 +382,7 @@
         <span class="nav-item__pill"></span>
       </button>
 
-      <button class="nav-item" data-page="library" aria-label="Library">
+      <button class="nav-item" data-page="library" data-i18n-attr="aria-label:nav_library" aria-label="库">
         <span class="nav-item__icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4v16"/><path d="M8 8v12"/><path d="M12 6v14"/><path d="m16 6 4 14"/>
@@ -392,7 +392,7 @@
         <span class="nav-item__pill"></span>
       </button>
 
-      <button class="nav-item" data-page="settings" aria-label="Settings">
+      <button class="nav-item" data-page="settings" data-i18n-attr="aria-label:nav_settings" aria-label="设置">
         <span class="nav-item__icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
@@ -409,11 +409,11 @@
   <div class="sheet-overlay" id="sheetOverlay" aria-hidden="true"></div>
 
   <!-- ───────── THEME SHEET ───────── -->
-  <div class="bottom-sheet" id="themeSheet" role="dialog" aria-modal="true" aria-label="Choose theme">
+  <div class="bottom-sheet" id="themeSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:sheet_theme_title" aria-label="主题">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <span class="sheet-header__title" data-i18n="sheet_theme_title">Theme</span>
-      <button class="sheet-header__close" aria-label="Close">
+      <span class="sheet-header__title" data-i18n="sheet_theme_title">主题</span>
+      <button class="sheet-header__close" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -422,21 +422,21 @@
         <div class="sheet-option__icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </div>
-        <span class="sheet-option__label" data-i18n="theme_opt_auto">Auto (System)</span>
+        <span class="sheet-option__label" data-i18n="theme_opt_auto">自动（系统）</span>
         <svg class="sheet-option__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="sheet-option" data-theme-option="dark">
         <div class="sheet-option__icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </div>
-        <span class="sheet-option__label" data-i18n="theme_opt_dark">Dark</span>
+        <span class="sheet-option__label" data-i18n="theme_opt_dark">深色</span>
         <svg class="sheet-option__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="sheet-option" data-theme-option="light">
         <div class="sheet-option__icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </div>
-        <span class="sheet-option__label" data-i18n="theme_opt_light">Light</span>
+        <span class="sheet-option__label" data-i18n="theme_opt_light">浅色</span>
         <svg class="sheet-option__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="sheet-option" data-theme-option="amoled">
@@ -450,11 +450,11 @@
   </div>
 
   <!-- ───────── LANGUAGE SHEET (options built dynamically from registered languages) ───────── -->
-  <div class="bottom-sheet" id="langSheet" role="dialog" aria-modal="true" aria-label="Choose language">
+  <div class="bottom-sheet" id="langSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:sheet_lang_title" aria-label="语言">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <span class="sheet-header__title" data-i18n="sheet_lang_title">Language</span>
-      <button class="sheet-header__close" aria-label="Close">
+      <span class="sheet-header__title" data-i18n="sheet_lang_title">语言</span>
+      <button class="sheet-header__close" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>

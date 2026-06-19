@@ -20,8 +20,8 @@
     <div class="bottom-sheet sheet--form" id="deviceModal" role="dialog" aria-modal="true">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" id="deviceModalTitle" data-i18n="dev_add_title">Add Device</span>
-        <button class="sheet-header__close" data-close="deviceModal" aria-label="Close">
+        <span class="sheet-header__title" id="deviceModalTitle" data-i18n="dev_add_title">添加设备</span>
+        <button class="sheet-header__close" data-close="deviceModal" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -39,12 +39,12 @@
         <div class="field-row">
           <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_android">Android Version</span><span class="field__opt" data-i18n="opt_optional">(optional)</span></span>
             <input class="field__input" id="dfAndroid" type="text" inputmode="decimal" /></label>
-          <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_sdk">SDK Int</span><span class="field__opt" data-i18n="opt_optional">(optional)</span><span class="field__warn" id="dfSdkWarn" role="button" tabindex="0" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${WARN_SVG}</span></span>
+          <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_sdk">SDK Int</span><span class="field__opt" data-i18n="opt_optional">（可选）</span><span class="field__warn" id="dfSdkWarn" role="button" tabindex="0" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${WARN_SVG}</span></span>
             <input class="field__input" id="dfSdk" type="text" inputmode="numeric" /></label>
         </div>
-        <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_androidid">Android ID</span><span class="field__opt" data-i18n="opt_optional">(optional)</span><span class="field__warn field__warn--inline" id="dfAndroidIdInfo" role="button" tabindex="0" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${WARN_SVG}</span><span class="field__gen" id="dfAndroidIdGen" role="button" tabindex="0" data-i18n="serial_gen">Generate</span></span>
+        <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_androidid">Android ID</span><span class="field__opt" data-i18n="opt_optional">（可选）</span><span class="field__warn field__warn--inline" id="dfAndroidIdInfo" role="button" tabindex="0" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${WARN_SVG}</span><span class="field__gen" id="dfAndroidIdGen" role="button" tabindex="0" data-i18n="serial_gen">生成</span></span>
           <input class="field__input field__input--mono" id="dfAndroidId" type="text" maxlength="16" inputmode="latin" autocapitalize="off" autocorrect="off" spellcheck="false" /></label>
-        <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_serial">Serial Number</span><span class="field__opt" data-i18n="opt_optional">(optional)</span><span class="field__gen" id="dfSerialGen" role="button" tabindex="0" data-i18n="serial_gen">Generate</span></span>
+        <label class="field"><span class="field__head"><span class="field__label" data-i18n="dev_f_serial">序列号</span><span class="field__opt" data-i18n="opt_optional">（可选）</span><span class="field__gen" id="dfSerialGen" role="button" tabindex="0" data-i18n="serial_gen">生成</span></span>
           <input class="field__input field__input--mono" id="dfSerial" type="text" maxlength="24" /></label>
         <div class="form-buttons">
           <button type="button" class="btn btn--ghost" data-close="deviceModal" data-i18n="btn_cancel">Cancel</button>
@@ -57,8 +57,8 @@
     <div class="bottom-sheet sheet--form" id="packageModal" role="dialog" aria-modal="true">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" id="packageModalTitle" data-i18n="pkg_add_title">Add Package</span>
-        <button class="sheet-header__close" data-close="packageModal" aria-label="Close">
+        <span class="sheet-header__title" id="packageModalTitle" data-i18n="pkg_add_title">添加应用包</span>
+        <button class="sheet-header__close" data-close="packageModal" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -66,7 +66,7 @@
         <label class="field"><span class="field__label" data-i18n="pkg_f_package">Package Name</span>
           <div class="field-with-btn">
             <input class="field__input field__input--mono" id="pfPackage" type="text" required placeholder="com.example.app" />
-            <button type="button" class="field-pick-btn" id="pfPickBtn" data-i18n-attr="aria-label:pick_from_installed" aria-label="Pick from installed apps">
+            <button type="button" class="field-pick-btn" id="pfPickBtn" data-i18n-attr="aria-label:pick_from_installed" aria-label="从已安装应用中选择">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2.2" fill="currentColor" stroke="none"/><rect x="14" y="3" width="7" height="7" rx="2.2"/><rect x="3" y="14" width="7" height="7" rx="2.2"/><rect x="14" y="14" width="7" height="7" rx="2.2"/></svg>
             </button>
           </div></label>
@@ -82,38 +82,38 @@
         </div>
 
         <div class="field" id="pfDeviceField"><span class="field__label" data-i18n="pkg_f_device">Device Profile</span>
-          <button type="button" class="field__input field__picker" id="pfDevice" data-i18n-attr="aria-label:pkg_f_device" aria-label="Device Profile">
-            <span class="field__picker-text is-placeholder" id="pfDeviceText" data-i18n="pkg_pick_device">Choose a device…</span>
+          <button type="button" class="field__input field__picker" id="pfDevice" data-i18n-attr="aria-label:pkg_f_device" aria-label="设备配置">
+            <span class="field__picker-text is-placeholder" id="pfDeviceText" data-i18n="pkg_pick_device">选择设备…</span>
             <svg class="field__picker-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button></div>
 
         <div class="toggles" id="pfToggles">
-          <div class="toggles__head" id="pfSpoofHead" data-i18n="pkg_sec_spoofing">Spoofing</div>
+          <div class="toggles__head" id="pfSpoofHead" data-i18n="pkg_sec_spoofing">伪装</div>
           <label class="trow" id="pfWithCpuRow">
-            <span class="trow__label"><span data-i18n="pkg_t_withcpu">With CPU Spoofing</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="withcpu" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_withcpu">伪装 CPU</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="withcpu" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfWithCpu"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
           <label class="trow" id="pfCowRow">
-            <span class="trow__label"><span data-i18n="pkg_t_cow">COW Prop Spoof</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="cow" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_cow">COW 属性伪装</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="cow" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfCow"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
 
-          <div class="toggles__head has-divider" id="pfTweakHead" data-i18n="pkg_sec_tweaks">Tweaks</div>
+          <div class="toggles__head has-divider" id="pfTweakHead" data-i18n="pkg_sec_tweaks">微调</div>
           <label class="trow" id="pfDndRow">
-            <span class="trow__label"><span data-i18n="pkg_t_dnd">Do Not Disturb</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="dnd" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_dnd">勿扰模式</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="dnd" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfDnd"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
           <label class="trow" id="pfDabRow">
-            <span class="trow__label"><span data-i18n="pkg_t_dab">Disable Auto-Brightness</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="dab" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_dab">关闭自动亮度</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="dab" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfDab"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
           <label class="trow" id="pfKsoRow">
-            <span class="trow__label"><span data-i18n="pkg_t_kso">Keep Screen On</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="kso" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_kso">保持屏幕常亮</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="kso" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfKso"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
           <label class="trow" id="pfNologRow">
-            <span class="trow__label"><span data-i18n="pkg_t_nolog">Disable Logging</span>
-              <span class="trow__info" role="button" tabindex="0" data-info="nolog" data-i18n-attr="aria-label:info_aria" aria-label="What's this?">${INFO_SVG}</span></span>
+              <span class="trow__label"><span data-i18n="pkg_t_nolog">关闭日志记录</span>
+              <span class="trow__info" role="button" tabindex="0" data-info="nolog" data-i18n-attr="aria-label:info_aria" aria-label="这是什么？">${INFO_SVG}</span></span>
             <span class="toggle"><input type="checkbox" id="pfNolog"><span class="toggle__track"><span class="toggle__thumb"></span></span></span></label>
         </div>
 
@@ -129,7 +129,7 @@
     <div class="bottom-sheet sheet--confirm" id="confirmModal" role="dialog" aria-modal="true">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" id="confirmTitle">Delete</span>
+        <span class="sheet-header__title" id="confirmTitle">删除</span>
       </div>
       <div class="sheet-body">
         <p class="confirm-msg" id="confirmMsg"></p>

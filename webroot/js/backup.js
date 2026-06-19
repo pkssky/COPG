@@ -49,20 +49,20 @@
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2"/><circle cx="6.8" cy="9.8" r="1.2"/><path d="M3 14.5 6.5 11l3 3 2-2 2.5 2.5"/><path d="M20.5 5.5a4.5 4.5 0 1 0 .4 4"/><polyline points="21 2 21 5.5 17.5 5.5"/></svg>`;
 
   document.body.insertAdjacentHTML('beforeend', `
-    <div class="bottom-sheet sheet--backup" id="backupSheet" role="dialog" aria-modal="true" aria-label="Backup &amp; Restore">
+    <div class="bottom-sheet sheet--backup" id="backupSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:backup_title" aria-label="备份与同步">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" data-i18n="backup_title">Backup &amp; Restore</span>
-        <button class="sheet-header__close" id="backupClose" aria-label="Close">${SVG_X}</button>
+        <span class="sheet-header__title" data-i18n="backup_title">备份与同步</span>
+        <button class="sheet-header__close" id="backupClose" data-i18n-attr="aria-label:aria_close" aria-label="关闭">${SVG_X}</button>
       </div>
       <div class="sheet-body">
-        <p class="backup-intro" data-i18n="backup_intro">Save a copy of your devices &amp; packages, or restore a previous backup.</p>
+        <p class="backup-intro" data-i18n="backup_intro">备份你的设备和应用包，恢复以前的备份，或从 GitHub 同步最新配置。</p>
 
         <button type="button" class="backup-action" id="backupSyncBtn">
           <span class="backup-action__icon backup-action__icon--sync">${SVG_SYNC}</span>
           <span class="backup-action__text">
-            <span class="backup-action__title" data-i18n="backup_sync">Sync from GitHub</span>
-            <span class="backup-action__sub" data-i18n="backup_sync_sub">Fetch the latest config from the repo</span>
+            <span class="backup-action__title" data-i18n="backup_sync">从 GitHub 同步</span>
+            <span class="backup-action__sub" data-i18n="backup_sync_sub">从仓库获取最新配置</span>
           </span>
           <span class="backup-action__chev">${SVG_CHEV}</span>
         </button>
@@ -70,8 +70,8 @@
         <button type="button" class="backup-action" id="backupRefreshIconsBtn">
           <span class="backup-action__icon backup-action__icon--sync">${SVG_REFRESH_ICONS}</span>
           <span class="backup-action__text">
-            <span class="backup-action__title" data-i18n="set_refresh_icons">Refresh App Icons</span>
-            <span class="backup-action__sub" data-i18n="set_refresh_icons_sub">Re-download package icons</span>
+            <span class="backup-action__title" data-i18n="set_refresh_icons">刷新应用图标</span>
+            <span class="backup-action__sub" data-i18n="set_refresh_icons_sub">重新下载应用包图标</span>
           </span>
           <span class="backup-action__chev">${SVG_CHEV}</span>
         </button>
@@ -79,8 +79,8 @@
         <button type="button" class="backup-action" id="backupExportBtn">
           <span class="backup-action__icon backup-action__icon--up">${SVG_CLOUD_UP}</span>
           <span class="backup-action__text">
-            <span class="backup-action__title" data-i18n="backup_export">Export backup</span>
-            <span class="backup-action__sub" data-i18n="backup_export_sub">Save current data to Downloads</span>
+            <span class="backup-action__title" data-i18n="backup_export">导出备份</span>
+            <span class="backup-action__sub" data-i18n="backup_export_sub">将当前数据保存到下载</span>
           </span>
           <span class="backup-action__chev">${SVG_CHEV}</span>
         </button>
@@ -88,8 +88,8 @@
         <button type="button" class="backup-action" id="backupImportBtn">
           <span class="backup-action__icon backup-action__icon--down">${SVG_CLOUD_DOWN}</span>
           <span class="backup-action__text">
-            <span class="backup-action__title" data-i18n="backup_import">Import &amp; restore</span>
-            <span class="backup-action__sub" data-i18n="backup_import_sub">Restore data from a backup</span>
+            <span class="backup-action__title" data-i18n="backup_import">导入并恢复</span>
+            <span class="backup-action__sub" data-i18n="backup_import_sub">从备份恢复数据</span>
           </span>
           <span class="backup-action__chev backup-action__chev--toggle">${SVG_CARET_DOWN}</span>
         </button>

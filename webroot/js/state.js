@@ -5,7 +5,7 @@ const State = {
   activePage:   'home',
   activeLibTab: 'devices',
   theme:        'dark',
-  language:     'en',
+  language:     'zh',
   moduleActive: true,
   rootEnv:      '—',
   rootSecondary: [],

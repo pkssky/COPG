@@ -17,11 +17,11 @@
 
   /* ─── Inject the console sheet (same bottom-sheet family as modals) ─── */
   document.body.insertAdjacentHTML('beforeend', `
-    <div class="bottom-sheet sheet--console" id="consoleSheet" role="dialog" aria-modal="true" aria-label="Console">
+    <div class="bottom-sheet sheet--console" id="consoleSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:console_title" aria-label="控制台">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" data-i18n="console_title">Console</span>
-        <button class="sheet-header__close" id="consoleClose" aria-label="Close">
+        <span class="sheet-header__title" data-i18n="console_title">控制台</span>
+        <button class="sheet-header__close" id="consoleClose" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
@@ -29,19 +29,19 @@
         <button type="button" class="con-btn" id="conLogcat">
           <span class="con-dot"></span><span data-i18n="console_logcat">Logcat</span>
         </button>
-        <button type="button" class="con-btn" id="conClear" data-i18n="console_clear">Clear</button>
-        <button type="button" class="con-btn" id="conCopy" data-i18n="console_copy">Copy</button>
+        <button type="button" class="con-btn" id="conClear" data-i18n="console_clear">清除</button>
+        <button type="button" class="con-btn" id="conCopy" data-i18n="console_copy">复制</button>
         <button type="button" class="con-btn" id="conSave">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span data-i18n="console_save">Save</span>
+          <span data-i18n="console_save">保存</span>
         </button>
       </div>
       <div class="console-output" id="consoleOutput"></div>
       <form class="console-input" id="consoleForm" autocomplete="off">
         <span class="console-input__prompt">$</span>
         <input type="text" id="consoleCmd" spellcheck="false" autocapitalize="off" autocorrect="off"
-               data-i18n-attr="placeholder:console_cmd_ph" placeholder="Type a shell command…" />
-        <button type="submit" class="con-run" aria-label="Run">
+               data-i18n-attr="placeholder:console_cmd_ph" placeholder="输入 shell 命令…" />
+        <button type="submit" class="con-run" data-i18n-attr="aria-label:aria_run" aria-label="运行">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </button>
       </form>

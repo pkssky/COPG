@@ -9,7 +9,7 @@
 (function (w) {
   const reg   = {};   // code -> dict
   const order = [];   // registration order (for the language list)
-  let   cur   = 'en';
+  let   cur   = 'zh';
 
   const I18N = {
     register(code, dict) {

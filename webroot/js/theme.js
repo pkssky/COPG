@@ -118,7 +118,7 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () =
 
 /* ─── Init from saved prefs ─── */
 const _savedTheme = (() => { try { return localStorage.getItem('copg-theme') || 'dark'; } catch(_){ return 'dark'; }})();
-const _savedLang  = (() => { try { return localStorage.getItem('copg-lang')  || 'en';   } catch(_){ return 'en';   }})();
+const _savedLang  = (() => { try { return localStorage.getItem('copg-lang')  || 'zh';   } catch(_){ return 'zh';   }})();
 buildLangSheet();
 applyTheme(_savedTheme);
-applyLanguage(I18N.has(_savedLang) ? _savedLang : 'en');
+applyLanguage(I18N.has(_savedLang) ? _savedLang : 'zh');

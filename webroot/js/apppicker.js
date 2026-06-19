@@ -8,27 +8,27 @@
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 (function (w) {
   document.body.insertAdjacentHTML('beforeend', `
-    <div class="bottom-sheet sheet--picker" id="appPickerSheet" role="dialog" aria-modal="true" aria-label="Installed apps">
+    <div class="bottom-sheet sheet--picker" id="appPickerSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:picker_title" aria-label="已安装应用">
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <span class="sheet-header__title" data-i18n="picker_title">Installed Apps</span>
-        <button class="sheet-header__close" id="apClose" aria-label="Close">
+        <span class="sheet-header__title" data-i18n="picker_title">已安装应用</span>
+        <button class="sheet-header__close" id="apClose" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="picker-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="apSearch" autocomplete="off" data-i18n-attr="placeholder:picker_search" placeholder="Search apps…" />
+        <input type="search" id="apSearch" autocomplete="off" data-i18n-attr="placeholder:picker_search" placeholder="搜索应用…" />
       </div>
       <div class="picker-controls">
         <div class="pk-filters" id="apFilters">
-          <button type="button" class="pk-chip" data-filter="all" data-i18n="filter_all">All</button>
-          <button type="button" class="pk-chip selected" data-filter="user" data-i18n="filter_user">User</button>
-          <button type="button" class="pk-chip" data-filter="system" data-i18n="filter_system">System</button>
+          <button type="button" class="pk-chip" data-filter="all" data-i18n="filter_all">全部</button>
+          <button type="button" class="pk-chip selected" data-filter="user" data-i18n="filter_user">用户</button>
+          <button type="button" class="pk-chip" data-filter="system" data-i18n="filter_system">系统</button>
         </div>
-        <button type="button" class="pk-sort" id="apSortBtn" aria-label="Sort A→Z / Z→A">
+        <button type="button" class="pk-sort" id="apSortBtn" data-i18n-attr="aria-label:aria_sort_toggle" aria-label="按名称正序/倒序排序">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5v14"/><path d="M4 8l3-3 3 3"/><path d="M14 7h6M14 12h4M14 17h2"/></svg>
-          <span id="apSortLabel" data-i18n="sort_name">Name (A→Z)</span>
+          <span id="apSortLabel" data-i18n="sort_name">名称 (A→Z)</span>
         </button>
       </div>
       <div class="picker-body">

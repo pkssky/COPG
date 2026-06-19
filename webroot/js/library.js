@@ -241,11 +241,11 @@ function updatePreviewBanner() {
 
 /* ─── Sort sheet (built dynamically, reused for devices & packages) ─── */
 document.body.insertAdjacentHTML('beforeend', `
-  <div class="bottom-sheet" id="sortSheet" role="dialog" aria-modal="true" aria-label="Sort">
+  <div class="bottom-sheet" id="sortSheet" role="dialog" aria-modal="true" data-i18n-attr="aria-label:aria_sort" aria-label="排序">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <span class="sheet-header__title" data-i18n="sort_title">Sort by</span>
-      <button class="sheet-header__close" id="sortClose" aria-label="Close">
+      <span class="sheet-header__title" data-i18n="sort_title">排序方式</span>
+      <button class="sheet-header__close" id="sortClose" data-i18n-attr="aria-label:aria_close" aria-label="关闭">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -307,9 +307,9 @@ function buildControls() {
   wrapHead('#libDevices', 'devices');
   wrapHead('#libPackages', 'packages', `
         <div class="lib-filters">
-          <button class="fchip active" data-filter="all" data-i18n="filter_all">All</button>
-          <button class="fchip" data-filter="installed" data-i18n="filter_installed">Installed</button>
-          <button class="fchip" data-filter="blocked" data-i18n="filter_blocked">Blocked</button>
+          <button class="fchip active" data-filter="all" data-i18n="filter_all">全部</button>
+          <button class="fchip" data-filter="installed" data-i18n="filter_installed">已安装</button>
+          <button class="fchip" data-filter="blocked" data-i18n="filter_blocked">已屏蔽</button>
           <button class="fchip" data-filter="cpu_only" data-i18n="filter_cpu_only">CPU</button>
         </div>`);
 
