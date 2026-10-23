@@ -49,19 +49,30 @@ class COPGModule : public zygisk::ModuleBase {
   public:
     void onLoad(zygisk::Api *api, JNIEnv *env) override {
         api_ = api;
-        env_ = env;
+        // Store the JavaVM, NOT the JNIEnv: onLoad runs on the zygote thread that
+        // loads us, but preAppSpecialize runs on the forked child's main thread.
+        // A JNIEnv is thread-bound and must not be reused across the fork — we
+        // re-derive a per-thread env in preAppSpecialize via GetEnv().
+        vm_ = (env && env->GetJavaVM(&vm_) == JNI_OK) ? vm_ : nullptr;
         COPG_LOGI("COPG engine loaded (api v%d)", ZYGISK_API_VERSION);
     }
 
     // Apps run preAppSpecialize; system_server uses the Server variants and
     // must never be hooked (it would spoof the whole system).
     void preAppSpecialize(zygisk::AppSpecializeArgs *args) override {
-        if (!api_ || !env_) return;
+        if (!api_ || !vm_ || !args) return;
 
-        const char *raw = env_->GetStringUTFChars(args->nice_name, nullptr);
+        // Derive THIS thread's JNIEnv (the forked child's main thread). The zygote
+        // thread that called onLoad is gone; reusing its env would be UB.
+        JNIEnv *env = nullptr;
+        if (vm_->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK || !env)
+            return;
+        if (!args->nice_name) return;
+
+        const char *raw = env->GetStringUTFChars(args->nice_name, nullptr);
         if (!raw) return;
         std::string process(raw);
-        env_->ReleaseStringUTFChars(args->nice_name, raw);
+        env->ReleaseStringUTFChars(args->nice_name, raw);
 
         // "com.pkg:push" style subprocesses share the app's config entry.
         std::string package = process.substr(0, process.find(':'));
@@ -126,7 +137,7 @@ class COPGModule : public zygisk::ModuleBase {
 
   private:
     zygisk::Api *api_ = nullptr;
-    JNIEnv *env_ = nullptr;
+    JavaVM *vm_ = nullptr;   // set once in onLoad; per-thread JNIEnv derived in preAppSpecialize
 };
 
 }  // namespace
