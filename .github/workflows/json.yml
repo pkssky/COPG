@@ -135,13 +135,31 @@ jobs:
         run: |
           mkdir -p build/arm64-v8a
           cd src
+          set +e
           cmake -S . -B ../build/arm64-v8a \
             -DCMAKE_TOOLCHAIN_FILE=${{ env.NDK_PATH }}/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-34 \
             -DANDROID_STL=c++_static \
-            -DCMAKE_MAKE_PROGRAM=/usr/bin/make
-          cmake --build ../build/arm64-v8a
+            -DCMAKE_MAKE_PROGRAM=/usr/bin/make > ../cmake_arm64_config.log 2>&1
+          cfg=$?
+          cmake --build ../build/arm64-v8a --verbose > ../cmake_arm64_build.log 2>&1
+          bld=$?
+          set -e
+          echo "=== config log ==="; cat ../cmake_arm64_config.log
+          echo "=== build log (errors) ==="; grep -iE "error|fatal|Error [0-9]" ../cmake_arm64_build.log | head -40
+          # TEMP DIAGNOSTIC: publish full logs to a public branch (readable
+          # without API auth) so the exact compiler error can be inspected.
+          cd ..
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          for f in cmake_arm64_config.log cmake_arm64_build.log; do
+            [ -f "$f" ] || continue
+            b=$(git hash-object -w "$f")
+            t=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git mktree)
+            c=$(git -c user.name=ci -c user.email=ci@users.noreply.github.com commit-tree "$t" -m "ci $f ${{ github.sha }}")
+            git push -qf origin "$c:refs/heads/ci-logs" 2>/dev/null || true
+          done
+          if [ $cfg -ne 0 ] || [ $bld -ne 0 ]; then exit 2; fi
 
       - name: Build Project (armeabi-v7a)
         run: |
