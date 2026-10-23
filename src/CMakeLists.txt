@@ -23,9 +23,15 @@ add_library(spoof SHARED
     spoof/props.cpp
     spoof/cpu.cpp
     spoof/gpu.cpp
+    spoof/proxy.cpp
+    spoof/uptime.cpp
+    spoof/sensor.cpp
+    spoof/vpn.cpp
     common/strings.cpp
     common/config.cpp
     common/gpu.cpp
+    common/proxy.cpp
+    common/sensor.cpp
 )
 
 target_include_directories(spoof PRIVATE

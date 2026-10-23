@@ -8,8 +8,13 @@
 //   :aid            ->  props::  (derived per-app ANDROID_ID, debug-exposed)
 //   :serial         ->  props::  (derived per-app ro.serialno)
 //   :tz=<zone>      ->  props::  (per-app persist.sys.timezone)
+//   :hidedev        ->  props::  (non-debuggable user-build props)
 //   cpu=<key>       ->  cpu::    (fopen/open redirect to CPU/cpuinfo_<key>)
 //   gpu=<key>       ->  gpu::    (glGetString vendor/renderer)
+//   :proxy          ->  proxy::  (connect() through a SOCKS5 endpoint)
+//   :uptime=<s>     ->  uptime:: (clock_gettime shifted to a fake boot time)
+//   :sensor         ->  sensor:: (sensor roster hidden/renamed)
+//   :vpn / :vpns    ->  vpn::    (tun*/ppp* interfaces hidden)
 //
 // Packages absent from the config — or tagged :blocked / :nolog where
 // applicable — get no hooks (or no logs), so the module stays invisible to
@@ -20,7 +25,11 @@
 #include "log.hpp"
 #include "paths.hpp"
 #include "props.hpp"
+#include "proxy_spoof.hpp"
+#include "sensor_spoof.hpp"
 #include "strings.hpp"
+#include "uptime.hpp"
+#include "vpn.hpp"
 #include "zygisk.hpp"
 
 #include <jni.h>
@@ -114,9 +123,10 @@ class COPGModule : public zygisk::ModuleBase {
 
         bool hooked = false;
 
-        // ── Device props (:aid / :serial / :tz feed the same table) ─────────
+        // ── Device props (:aid / :serial / :tz / :hidedev feed one table) ───
         const copg::DeviceProfile *dev = r.cpu_only ? nullptr : r.device;
-        bool needs_props = (dev && !dev->empty()) || r.aid || r.serial || !r.tz.empty();
+        bool needs_props = (dev && !dev->empty()) || r.aid || r.serial ||
+                           !r.tz.empty() || r.hidedev;
         if (needs_props) {
             // _DEVICE's ANDROID_ID field doubles as the derivation seed.
             std::string seed = dev && dev->count("ANDROID_ID") ? dev->at("ANDROID_ID") : "";
@@ -125,13 +135,14 @@ class COPGModule : public zygisk::ModuleBase {
             // A static SERIAL field wins over the derived one.
             if (r.serial && !(dev && dev->count("SERIAL")))
                 serial = derive_serial(seed, package);
-            copg::props::set_state(dev, aid, serial, r.tz);
+            copg::props::set_state(dev, aid, serial, r.tz, r.hidedev);
             copg::props::register_hooks(api_);
             hooked = true;
             if (!quiet) {
                 if (!aid.empty()) COPG_LOGI("%s: derived ANDROID_ID %s", package.c_str(), aid.c_str());
                 if (!serial.empty()) COPG_LOGI("%s: derived serial %s", package.c_str(), serial.c_str());
                 if (!r.tz.empty()) COPG_LOGI("%s: timezone -> %s", package.c_str(), r.tz.c_str());
+                if (r.hidedev) COPG_LOGI("%s: developer-options props hidden", package.c_str());
             }
         }
 
@@ -151,14 +162,53 @@ class COPGModule : public zygisk::ModuleBase {
             }
         }
 
+        // ── Per-app proxy (:proxy / :proxy=<key>) ───────────────────────
+        if (!r.proxy_key.empty()) {
+            if (copg::proxy::set_endpoint(r.proxy_key)) {
+                copg::proxy::register_hooks(api_);
+                hooked = true;
+                if (!quiet) COPG_LOGI("%s: traffic via SOCKS5 '%s'", package.c_str(),
+                                      r.proxy_key.c_str());
+            }
+        }
+
+        // ── Fake uptime (:uptime=<sec>) ─────────────────────────────────
+        if (r.uptime_sec > 0) {
+            copg::uptime::set_offset(r.uptime_sec);
+            copg::uptime::register_hooks(api_);
+            hooked = true;
+        }
+
+        // ── Sensor roster (:sensor / :sensor=<key>) ─────────────────────
+        if (!r.sensor_key.empty()) {
+            if (copg::sensor::set_key(r.sensor_key)) {
+                copg::sensor::register_hooks(api_);
+                hooked = true;
+                if (!quiet) COPG_LOGI("%s: sensor roster '%s'", package.c_str(),
+                                      r.sensor_key.c_str());
+            }
+        }
+
+        // ── VPN hiding (:vpn / :vpns) ───────────────────────────────────
+        if (r.vpn) {
+            copg::vpn::register_hooks(api_);
+            hooked = true;
+            if (!quiet) COPG_LOGI("%s: VPN interfaces hidden", package.c_str());
+        }
+
         if (hooked) {
             // pltHookCommit must always run when hooks were registered; :nolog
             // only silences the per-package log line.
             bool ok = api_->pltHookCommit();
             if (!quiet)
-                COPG_LOGI("%s (user %d): hooks committed=%d cpu=%s gpu=%s", package.c_str(),
-                          user_id, ok ? 1 : 0, r.cpu_key.empty() ? "-" : r.cpu_key.c_str(),
-                          r.gpu_key.empty() ? "-" : r.gpu_key.c_str());
+                COPG_LOGI("%s (user %d): hooks committed=%d cpu=%s gpu=%s proxy=%s "
+                          "sensor=%s uptime=%lld vpn=%d",
+                          package.c_str(), user_id, ok ? 1 : 0,
+                          r.cpu_key.empty() ? "-" : r.cpu_key.c_str(),
+                          r.gpu_key.empty() ? "-" : r.gpu_key.c_str(),
+                          r.proxy_key.empty() ? "-" : r.proxy_key.c_str(),
+                          r.sensor_key.empty() ? "-" : r.sensor_key.c_str(),
+                          r.uptime_sec, r.vpn ? 1 : 0);
         }
     }
 

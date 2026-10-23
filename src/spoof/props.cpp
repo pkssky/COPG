@@ -65,6 +65,23 @@ const FieldMap kFieldMap[] = {
     {"SOC_MODEL",     {"ro.soc.model"}},
 };
 
+// Static debuggability props for the :hidedev tag — report a plain,
+// non-debuggable user build. Kept minimal and stable: these are the
+// properties apps (and their integrity SDKs) consult to detect developer
+// options / root-ish builds.
+const struct {
+    const char *prop;
+    const char *value;
+} kHideDevProps[] = {
+    {"ro.debuggable",           "0"},
+    {"ro.secure",               "1"},
+    {"ro.build.type",           "user"},
+    {"ro.build.tags",           "release-keys"},
+    {"ro.adb.secure",           "1"},
+    {"service.adb.tcp.port",    ""},
+    {"persist.sys.dalvik.vm.lib.2", "libart.so"},
+};
+
 // Caller's callback for the in-flight __system_property_read_callback call.
 // thread_local: the real implementation never re-enters on the same thread.
 // Nested calls (a property read triggered from inside another one) are handled
@@ -106,8 +123,14 @@ const char *lookup(const char *name) {
 }
 
 void set_state(const DeviceProfile *device, const std::string &android_id,
-               const std::string &serial, const std::string &timezone) {
+               const std::string &serial, const std::string &timezone,
+               bool hide_dev) {
     g_spoof.clear();
+    if (hide_dev) {
+        // :hidedev — debuggability props, applied FIRST so an explicit
+        // _DEVICE field (e.g. a ro.build.type the user chose) still wins.
+        for (const auto &hd : kHideDevProps) g_spoof[hd.prop] = hd.value;
+    }
     if (device) {
         for (const auto &field : *device) {
             for (const auto &fm : kFieldMap) {

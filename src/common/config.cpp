@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -26,12 +27,12 @@ using ordered_json = nlohmann::ordered_json;
 // users get a clear signal about which spoofs won't take effect. See
 // docs/OPEN_SOURCE_ENGINE.md for why each one needs more than in-process hooks.
 const char *kUnsupportedTags[] = {
-    "gaid", "appset", "drm", "imei", "sensor", "webfp", "tensorfeat",
-    "proxy", "mock", "vpn", "vpns", "hidedev",          // PRO identity / network
-    "dnd", "dab", "kso",                                 // controller comfort tweaks
+    "gaid", "appset", "drm", "imei", "webfp", "tensorfeat",
+    "mock",                                        // PRO identity / detection
+    "dnd", "dab", "kso",                           // controller comfort tweaks
 };
-const char *kUnsupportedValueTags[] = {                 // value-carrying variants
-    "sim=", "simx=", "lang=", "ua=", "uptime=", "gps=", "dpi=",
+const char *kUnsupportedValueTags[] = {           // value-carrying variants
+    "sim=", "simx=", "lang=", "ua=", "gps=", "dpi=",
 };
 
 // Parse "pkg:tag:tag:..." into package + tags. Unknown tags are ignored.
@@ -55,12 +56,29 @@ PackageEntry parse_entry(const std::string &raw) {
             entry.tags.serial = true;
         } else if (t == "nolog") {
             entry.tags.nolog = true;
+        } else if (t == "vpn" || t == "vpns") {
+            entry.tags.vpn = true;
+        } else if (t == "hidedev") {
+            entry.tags.hidedev = true;
+        } else if (t == "proxy") {
+            entry.tags.proxy_key = "default";   // bare :proxy = default endpoint
+        } else if (t == "sensor") {
+            entry.tags.sensor_key = "default";  // bare :sensor = default profile
         } else if (starts_with(t, "cpu=")) {
             entry.tags.cpu_key = t.substr(4);
         } else if (starts_with(t, "gpu=")) {
             entry.tags.gpu_key = t.substr(4);
         } else if (starts_with(t, "tz=")) {
             entry.tags.tz = t.substr(3);
+        } else if (starts_with(t, "proxy=")) {
+            entry.tags.proxy_key = t.substr(6);
+        } else if (starts_with(t, "sensor=")) {
+            entry.tags.sensor_key = t.substr(7);
+        } else if (starts_with(t, "uptime=")) {
+            // Fake seconds since boot; 0/negative/invalid = not used.
+            char *end = nullptr;
+            long long v = std::strtoll(t.c_str() + 7, &end, 10);
+            if (end && *end == '\0' && v > 0) entry.tags.uptime_sec = v;
         } else if (starts_with(t, "user=")) {
             int id = -1;
             if (std::sscanf(t.c_str() + 5, "%d", &id) == 1) entry.tags.user_id = id;
@@ -143,11 +161,16 @@ Config::Resolved Config::resolve(const std::string &package, int user_id) const 
 
             // ── other aspects: first supplier wins ──────────────────────
             if (r.gpu_key.empty() && !entry.tags.gpu_key.empty()) r.gpu_key = entry.tags.gpu_key;
+            if (r.proxy_key.empty() && !entry.tags.proxy_key.empty()) r.proxy_key = entry.tags.proxy_key;
+            if (r.sensor_key.empty() && !entry.tags.sensor_key.empty()) r.sensor_key = entry.tags.sensor_key;
+            if (r.uptime_sec == 0 && entry.tags.uptime_sec > 0) r.uptime_sec = entry.tags.uptime_sec;
+            if (r.tz.empty() && !entry.tags.tz.empty()) r.tz = entry.tags.tz;
             if (!r.aid && entry.tags.aid) r.aid = true;
             if (!r.serial && entry.tags.serial) r.serial = true;
-            if (r.tz.empty() && !entry.tags.tz.empty()) r.tz = entry.tags.tz;
             if (!r.cow && entry.tags.cow) r.cow = true;
             if (!r.nolog && entry.tags.nolog) r.nolog = true;
+            if (!r.vpn && entry.tags.vpn) r.vpn = true;
+            if (!r.hidedev && entry.tags.hidedev) r.hidedev = true;
             for (const auto &u : entry.tags.unsupported) {
                 if (std::find(r.unsupported.begin(), r.unsupported.end(), u) == r.unsupported.end())
                     r.unsupported.push_back(u);

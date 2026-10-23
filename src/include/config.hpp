@@ -28,22 +28,30 @@
 //   tz=<zone>    [~] per-app timezone (persist.sys.timezone spoof)
 //   user=<id>    [✓] extension: only apply for this Android user id
 //   nolog        [✓] comfort toggle honoured here: quiet per-package logging
-//   dnd / dab / kso / dpi=<n>
+//   proxy        [✓] per-app SOCKS5 proxy: connect() redirected through the
+//   proxy=<key>      PROXY/manifest.json endpoint (bare = "default")
+//   uptime=<s>   [✓] fake device uptime: clock_gettime(CLOCK_MONOTONIC/
+//                     BOOTTIME) shifted so the app sees <s> seconds since boot
+//   sensor       [✓] sensor-roster spoof: hide/rename sensors per
+//   sensor=<key>     SENSOR/manifest.json profile (bare = "default")
+//   vpn / vpns   [✓] hide VPN interfaces (tun*/ppp*) from getifaddrs
+//   hidedev      [✓] spoof debuggability props (ro.debuggable=0, user build, ...)
+//   gaid / appset / drm / imei / sim=<c> / simx=<c> / lang=<bcp47> / ua=<p> /
+//   webfp / tensorfeat / gps=<lat,lng> / mock / dpi=<n>
+//                [✗] upstream PRO tags that need system-service or ART hooks;
+//                     parsed and reported as unsupported
+//   dnd / dab / kso
 //                [✗] closed-source controller comfort tweaks (parsed, reported
 //                     by `controller status` as unsupported)
-//   gaid / appset / drm / imei / sim=<c> / simx=<c> / lang=<bcp47> / ua=<p> /
-//   uptime=<s> / sensor / webfp / tensorfeat / gps=<lat,lng> / proxy / mock /
-//   vpn / vpns / hidedev
-//                [✗] upstream PRO tags that need system-service, root-networking
-//                     or ART hooks; parsed and reported as unsupported
 // Unknown tags are ignored (forward compatible).
 //
-// Merge semantics: aspects (device fields, cpu, gpu, aid, serial, tz) resolve
-// independently — the first profile in scan order that supplies an aspect wins
-// for it. Scan order is PACKAGES_THISDEVICE first (documented precedence), then
-// the remaining profiles in JSON appearance order. An empty _DEVICE map in a
-// scanned profile still supplies the device aspect (as "no device spoof"), so
-// THISDEVICE's usually-empty _DEVICE correctly suppresses lower profiles.
+// Merge semantics: aspects (device fields, cpu, gpu, aid, serial, tz, proxy,
+// sensor, uptime, vpn, hidedev) resolve independently — the first profile in
+// scan order that supplies an aspect wins for it. Scan order is
+// PACKAGES_THISDEVICE first (documented precedence), then the remaining
+// profiles in JSON appearance order. An empty _DEVICE map in a scanned profile
+// still supplies the device aspect (as "no device spoof"), so THISDEVICE's
+// usually-empty _DEVICE correctly suppresses lower profiles.
 #pragma once
 
 #include <map>
@@ -59,10 +67,15 @@ struct PackageTags {
     bool cow = false;
     bool aid = false;
     bool serial = false;     // per-app derived serial
-    std::string tz;          // ":tz=<zone>" — per-app timezone
     bool nolog = false;      // comfort toggle honoured here (quiet logging)
+    bool vpn = false;        // ":vpn" / ":vpns" — hide VPN interfaces from the app
+    bool hidedev = false;    // ":hidedev" — spoof debuggability properties
+    std::string tz;          // ":tz=<zone>" — per-app timezone
     std::string cpu_key;     // "sd8elite" (from cpu=)
     std::string gpu_key;     // "adreno830" (from gpu=)
+    std::string proxy_key;   // "default" (bare :proxy) or explicit key
+    std::string sensor_key;  // "default" (bare :sensor) or explicit key
+    long long uptime_sec = 0;  // ":uptime=<sec>" — fake seconds since boot
     int user_id = -1;        // from user=<id>; -1 = any user
     // Upstream tags this engine does not implement (diagnostics only).
     std::vector<std::string> unsupported;
@@ -100,9 +113,14 @@ struct Config {
         bool aid = false;
         bool serial = false;
         bool nolog = false;
+        bool vpn = false;           // hide VPN interfaces
+        bool hidedev = false;       // spoof debuggability props
         std::string tz;             // ":tz=<zone>"
         std::string cpu_key;        // "" = no cpu spoof
         std::string gpu_key;        // "" = no gpu spoof
+        std::string proxy_key;      // "" = no proxy
+        std::string sensor_key;     // "" = no sensor spoof
+        long long uptime_sec = 0;   // 0 = no uptime spoof
         const DeviceProfile *device = nullptr;  // merged device fields (may be empty)
         // Upstream tags seen for this package that this engine does not implement.
         std::vector<std::string> unsupported;

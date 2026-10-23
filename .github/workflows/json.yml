@@ -103,7 +103,8 @@ jobs:
       - name: Build Controller (All Architectures)
         run: |
           # Engine sources shared by the controller and the zygisk library.
-          ENGINE_COMMON="src/common/strings.cpp src/common/config.cpp src/common/gpu.cpp"
+          ENGINE_COMMON="src/common/strings.cpp src/common/config.cpp src/common/gpu.cpp \
+src/common/proxy.cpp src/common/sensor.cpp"
           INC="-I src -I src/include -I src/third_party"
 
           echo "Building ARM64..."

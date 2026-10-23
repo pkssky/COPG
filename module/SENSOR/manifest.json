@@ -1,0 +1,28 @@
+[
+  {
+    "key": "default",
+    "name": "Template (no changes)",
+    "hidden": [],
+    "rename": {}
+  },
+  {
+    "key": "pixel8pro-example",
+    "name": "Google Pixel 8 Pro (example roster)",
+    "hidden": [
+      19,
+      34
+    ],
+    "rename": {
+      "1": {
+        "name": "Accelerometer Sensor",
+        "vendor": "Google",
+        "string_type": "android.sensor.accelerometer"
+      },
+      "4": {
+        "name": "Game Rotation Vector Sensor",
+        "vendor": "Google",
+        "string_type": "android.sensor.game_rotation_vector"
+      }
+    }
+  }
+]

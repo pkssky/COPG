@@ -15,6 +15,10 @@ constexpr const char *kCpuDir      = "/data/adb/modules/COPG/CPU";
 constexpr const char *kCpuManifest = "/data/adb/modules/COPG/CPU/manifest.json";
 // GPU spoof table: GPU/manifest.json
 constexpr const char *kGpuManifest = "/data/adb/modules/COPG/GPU/manifest.json";
+// Per-app proxy endpoints: PROXY/manifest.json
+constexpr const char *kProxyManifest = "/data/adb/modules/COPG/PROXY/manifest.json";
+// Sensor-roster spoof profiles: SENSOR/manifest.json
+constexpr const char *kSensorManifest = "/data/adb/modules/COPG/SENSOR/manifest.json";
 // Runtime state dir owned by the controller daemon.
 constexpr const char *kStateDir    = "/data/adb/copg_state";
 

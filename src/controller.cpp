@@ -8,13 +8,16 @@
 //   controller perms      re-assert modes/SELinux contexts on config files
 //                         (the WebUI rewrites COPG.json via ksu.exec)
 //   controller status     print state dir + config summary + validation
-//                         (missing cpu/gpu profiles, unimplemented tags in use)
+//                         (missing cpu/gpu/proxy/sensor profiles,
+//                          unimplemented tags in use)
 //
 // It deliberately does NOT touch system properties or mounts anything.
 #include "config.hpp"
 #include "gpu.hpp"
 #include "log.hpp"
 #include "paths.hpp"
+#include "proxy.hpp"
+#include "sensor.hpp"
 #include "strings.hpp"
 
 #include <dirent.h>
@@ -85,6 +88,9 @@ int cmd_perms() {
     const char *files[][2] = {
         {copg::kConfigPath, "644"},
         {copg::kListPath, "644"},
+        {copg::kGpuManifest, "644"},
+        {copg::kProxyManifest, "644"},
+        {copg::kSensorManifest, "644"},
     };
     for (const auto &f : files) {
         if (stat(f[0], &st) == 0) {
@@ -127,8 +133,9 @@ int report_config() {
     printf("config    : %s\n", copg::kConfigPath);
 
     size_t packages = 0, cpu_n = 0, gpu_n = 0, aid_n = 0, serial_n = 0, tz_n = 0;
-    size_t cow_n = 0, blocked_n = 0;
-    std::vector<std::string> bad_cpu, bad_gpu, unsupported;
+    size_t cow_n = 0, blocked_n = 0, proxy_n = 0, sensor_n = 0, uptime_n = 0;
+    size_t vpn_n = 0, hidedev_n = 0;
+    std::vector<std::string> bad_cpu, bad_gpu, bad_proxy, bad_sensor, unsupported;
 
     for (const auto &key : cfg.profile_order) {
         auto pit = cfg.profiles.find(key);
@@ -140,6 +147,9 @@ int report_config() {
             if (e.tags.aid) ++aid_n;
             if (e.tags.serial) ++serial_n;
             if (!e.tags.tz.empty()) ++tz_n;
+            if (e.tags.vpn) ++vpn_n;
+            if (e.tags.hidedev) ++hidedev_n;
+            if (e.tags.uptime_sec > 0) ++uptime_n;
 
             if (!e.tags.cpu_key.empty()) {
                 ++cpu_n;
@@ -152,6 +162,16 @@ int report_config() {
                 ++gpu_n;
                 if (!copg::gpu_lookup(e.tags.gpu_key, copg::kGpuManifest))
                     bad_gpu.push_back(e.package + " [" + key + ":gpu=" + e.tags.gpu_key + "]");
+            }
+            if (!e.tags.proxy_key.empty()) {
+                ++proxy_n;
+                if (!copg::proxy_lookup(e.tags.proxy_key, copg::kProxyManifest))
+                    bad_proxy.push_back(e.package + " [" + key + ":proxy=" + e.tags.proxy_key + "]");
+            }
+            if (!e.tags.sensor_key.empty()) {
+                ++sensor_n;
+                if (!copg::sensor_lookup(e.tags.sensor_key, copg::kSensorManifest))
+                    bad_sensor.push_back(e.package + " [" + key + ":sensor=" + e.tags.sensor_key + "]");
             }
             for (const auto &u : e.tags.unsupported) {
                 std::string line = e.package + " [" + key + ":" + u + "]";
@@ -171,6 +191,8 @@ int report_config() {
            cfg.cpu_blacklist.size());
     printf("tags      : cpu=%zu gpu=%zu aid=%zu serial=%zu tz=%zu cow=%zu blocked=%zu\n",
            cpu_n, gpu_n, aid_n, serial_n, tz_n, cow_n, blocked_n);
+    printf("pro tags  : proxy=%zu sensor=%zu uptime=%zu vpn=%zu hidedev=%zu\n",
+           proxy_n, sensor_n, uptime_n, vpn_n, hidedev_n);
 
     int problems = 0;
     if (!bad_cpu.empty()) {
@@ -182,6 +204,16 @@ int report_config() {
         problems += static_cast<int>(bad_gpu.size());
         printf("!! missing gpu keys (%zu):\n", bad_gpu.size());
         for (const auto &b : bad_gpu) printf("     %s\n", b.c_str());
+    }
+    if (!bad_proxy.empty()) {
+        problems += static_cast<int>(bad_proxy.size());
+        printf("!! missing proxy keys (%zu):\n", bad_proxy.size());
+        for (const auto &b : bad_proxy) printf("     %s\n", b.c_str());
+    }
+    if (!bad_sensor.empty()) {
+        problems += static_cast<int>(bad_sensor.size());
+        printf("!! missing sensor keys (%zu):\n", bad_sensor.size());
+        for (const auto &b : bad_sensor) printf("     %s\n", b.c_str());
     }
     if (!unsupported.empty()) {
         printf(".. tags not implemented by the open-source engine (%zu):\n", unsupported.size());

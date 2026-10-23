@@ -315,7 +315,19 @@ fi
         [ -f "$file" ] && chcon u:object_r:system_file:s0 "$file" 2>/dev/null
       done
     fi
-    
+
+    # PROXY/ and SENSOR/ manifests are read by the engine inside every app
+    # process, so they must be world-readable with a system_file context,
+    # exactly like CPU/manifest.json.
+    for dir in PROXY SENSOR; do
+      if [ -d "$MODPATH/$dir" ]; then
+        chmod 0644 "$MODPATH/$dir/manifest.json" 2>/dev/null
+        for file in "$MODPATH/$dir/"*; do
+          [ -f "$file" ] && chcon u:object_r:system_file:s0 "$file" 2>/dev/null
+        done
+      fi
+    done
+
     # Clean up unused architecture files to reduce module size
     cleanup_unused_architectures
   fi

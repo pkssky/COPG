@@ -1,0 +1,18 @@
+[
+  {
+    "key": "default",
+    "name": "Local SOCKS5 (edit me)",
+    "host": "127.0.0.1",
+    "port": 1080,
+    "user": "",
+    "pass": ""
+  },
+  {
+    "key": "example-remote",
+    "name": "Example remote SOCKS5 with auth",
+    "host": "proxy.example.com",
+    "port": 1080,
+    "user": "username",
+    "pass": "password"
+  }
+]

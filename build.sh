@@ -15,7 +15,12 @@
 #   spoof/props.cpp          Build.* property spoofing (__system_property_*)
 #   spoof/cpu.cpp            /proc/cpuinfo redirect (fopen/open/openat)
 #   spoof/gpu.cpp            glGetString vendor/renderer spoofing
-#   common/{strings,config,gpu}.cpp   helpers + COPG.json parser + GPU table
+#   spoof/proxy.cpp          per-app SOCKS5 proxy (connect() redirect)
+#   spoof/uptime.cpp         fake uptime (clock_gettime offset)
+#   spoof/sensor.cpp         sensor roster spoofing (ASensorManager_*)
+#   spoof/vpn.cpp            VPN interface hiding (getifaddrs)
+#   common/{strings,config,gpu,proxy,sensor}.cpp
+#                            helpers + COPG.json parser + GPU/PROXY/SENSOR tables
 #   controller.cpp           root daemon: state dir, perms repair, status
 #
 #   Usage:  ./build.sh [version] [versionCode]
@@ -85,7 +90,10 @@ banner=banner.png
 EOF
 
 # ── shared engine sources ────────────────────────────────────────────────────
-ENGINE_COMMON="src/common/strings.cpp src/common/config.cpp src/common/gpu.cpp"
+ENGINE_COMMON="src/common/strings.cpp src/common/config.cpp src/common/gpu.cpp \
+src/common/proxy.cpp src/common/sensor.cpp"
+ENGINE_SPOOF="src/spoof/props.cpp src/spoof/cpu.cpp src/spoof/gpu.cpp \
+src/spoof/proxy.cpp src/spoof/uptime.cpp src/spoof/sensor.cpp src/spoof/vpn.cpp"
 INC="-I src -I src/include -I src/third_party"
 
 # ── build Zygisk library (zygisk/<abi>.so) ───────────────────────────────────
@@ -97,7 +105,7 @@ log "building zygisk library ($ABI.so)"
 clang++ -std=c++17 -shared -fPIC -static-libstdc++ -Os -flto -ffunction-sections -fdata-sections \
   -Wl,--gc-sections -Wl,--exclude-libs,ALL \
   $INC \
-  src/zygisk_module.cpp src/spoof/props.cpp src/spoof/cpu.cpp src/spoof/gpu.cpp \
+  src/zygisk_module.cpp $ENGINE_SPOOF \
   $ENGINE_COMMON -llog \
   -o "$STAGE/zygisk/$ABI.so"
 llvm-strip --strip-unneeded "$STAGE/zygisk/$ABI.so"

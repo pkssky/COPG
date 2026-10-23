@@ -37,8 +37,10 @@ namespace props {
 //                a static SERIAL field inside `device` takes precedence and is
 //                already covered by the field map)
 //   timezone   — zone id for the :tz=<zone> tag (empty = not used)
+//   hide_dev   — :hidedev tag: report a non-debuggable user build
 void set_state(const DeviceProfile *device, const std::string &android_id,
-               const std::string &serial, const std::string &timezone);
+               const std::string &serial, const std::string &timezone,
+               bool hide_dev = false);
 
 // Register the PLT hooks (call before zygisk::Api::pltHookCommit()).
 void register_hooks(zygisk::Api *api);
