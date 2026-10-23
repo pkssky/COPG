@@ -64,9 +64,14 @@ src/
 │   ├── cpu.cpp         fopen / fopen64 / open / openat hook → /proc/cpuinfo 重定向
 │   └── gpu.cpp         glGetString hook（GL_VENDOR / GL_RENDERER）
 ├── zygisk_module.cpp   Zygisk 入口：包名解析 → 按标签装配 hook → pltHookCommit
-├── controller.cpp     root 守护进程（run / perms / status）
+├── controller.cpp     root 守护进程（run / perms / status / check）
 └── third_party/json.hpp  nlohmann/json 单头版（MIT）
 ```
+
+**热路径设计**：`__system_property_get` / `__system_property_read_callback` 与
+`fopen/open/openat` 在 App 进程中每秒可能被调用成千上万次，因此：
+属性查询表用 `unordered_map`（O(1)）；`is_cpuinfo` 先做单字节快速拒绝再 `strcmp`；
+未命中配置的 App 不装任何 hook，零开销。
 
 ## 3. 与 PRO 功能对标
 
@@ -75,14 +80,19 @@ src/
 | 每 App 机型伪装（BRAND/MODEL/FINGERPRINT 等 20+ Build 字段） | 免费 | `props.cpp` PLT hook | ✅ |
 | 多用户 / 分身差异化 | 免费 | hook 按进程生效 + `user=<id>` 标签过滤 | ✅ |
 | CPU 伪装（cpuinfo_&lt;key&gt;） | 免费 | `cpu.cpp` fopen/open 重定向 | ✅ |
+| `:blocked` 强制真实 CPU | 免费 | resolve 剥离 cpu aspect（与全局 blacklist 同效） | ✅ |
 | **GPU 伪装（renderer/vendor）** | **PRO** | `gpu.cpp` glGetString hook | ✅ 开源免费 |
 | **Copy-on-Write 属性伪装** | **PRO** | 进程内 hook 天然满足（无全局痕迹） | ✅ 开源免费 |
+| **每 App 序列号（`:serial`）** | **PRO** | FNV-1a(seed, pkg) 派生 → `ro.serialno` / `ro.boot.serialno` hook（`_DEVICE.SERIAL` 静态值优先） | ✅ 开源免费 |
+| **每 App 时区（`:tz=<zone>`）** | **PRO** | hook `persist.sys.timezone`（libcore 默认时区解析路径） | ⚠️ 部分：显式 `TimeZone.setDefault()` 的 App 不受影响 |
 | **每 App ANDROID_ID 派生（`aid`）** | **PRO** | FNV-1a(seed, pkg) 派生，日志 + `persist.sys.copg.aid` 暴露 | ⚠️ 部分：Settings.Secure.ANDROID_ID 在系统侧 sqlite，进程内 PLT hook 够不到，需 Java hook（见 §6） |
-| 每 App 代理 / GPS / SIM | PRO | 未实现 | ❌ 规划中 |
-| GAID / App Set ID / IMEI | PRO | 未实现 | ❌ 规划中 |
-| 传感器指纹 / 基站位置 | PRO | 未实现 | ❌ 规划中 |
+| WebView User-Agent（`:ua=<profile>`） | PRO | 间接覆盖：UA 由 Build.MODEL/RELEASE 拼装，属性 hook 已生效 | ⚠️ 部分 |
+| 每 App 代理 / GPS / SIM | PRO | 未实现 | ❌ 需 root 网络栈 / 系统服务 hook |
+| GAID / App Set ID / IMEI / DRM | PRO | 未实现 | ❌ 需 GMS/telephony binder 侧 hook |
+| 传感器指纹 / 基站位置 | PRO | 未实现 | ❌ 需传感器服务侧 hook |
+| 语言地区（`:lang=`）/ DPI（`:dpi=`）/ 伪造 uptime | PRO | 未实现 | ❌ 资源/时钟由系统服务提供 |
 | 安装补丁 / 禁 FLAG_SECURE / 双 App 麦克风 | 免费 | 未实现（壳脚本层） | ❌ 规划中 |
-| PairIP 绕过 / 隐藏开发者选项 | PRO | 未实现 | ❌ 规划中 |
+| PairIP 绕过 / 隐藏开发者选项 / VPN·模拟定位隐藏 | PRO | 未实现 | ❌ 需系统服务侧 hook |
 
 ## 4. 配置格式（与 WebUI 完全兼容，未改动）
 
@@ -90,8 +100,10 @@ src/
 {
   "cpu_spoof": { "blacklist": ["com.x"], "cpu_only_packages": ["com.y"] },
   "PACKAGES_REDMAGIC_9_PRO": [
-    "com.tencent.tmgp.pubgmhd:cpu=sd8elite:gpu=adreno830",
-    "com.supercell.brawlstars:blocked"
+    "com.tencent.tmgp.pubgmhd:cpu=sd8elite:gpu=adreno830:aid:serial:tz=Asia/Shanghai",
+    "com.supercell.brawlstars:blocked",
+    "com.netease.newspike:blocked:gpu=adreno830",
+    "com.bbl.mobilebanking:cpu=sd8elite:nolog"
   ],
   "PACKAGES_REDMAGIC_9_PRO_DEVICE": {
     "BRAND": "nubia", "DEVICE": "REDMAGIC 9 Pro", "MODEL": "NX769J",
@@ -101,20 +113,33 @@ src/
 }
 ```
 
-标签语义（冒号后缀，未知标签忽略以保持前向兼容）：
+注意 `blocked:gpu=adreno830` 是合法组合：`blocked` 只禁 CPU 伪装，GPU 伪装照常生效。
 
-| 标签 | 含义 |
-|---|---|
-| `blocked` | 模块对该 App 完全静默（不装任何 hook，也不可被检测） |
-| `cpu=<key>` | 用 `CPU/cpuinfo_<key>` 替换 `/proc/cpuinfo` |
-| `gpu=<key>` | 用 `GPU/manifest.json` 中 `<key>` 的 vendor/renderer |
-| `with_cpu` | 旧版兼容标签 |
-| `cow` | 空操作（本引擎 hook 本就是进程局部） |
-| `aid` | 按 `ANDROID_ID` 种子 + 包名派生每 App ID |
-| `user=<id>` | **扩展**：仅对指定 Android 用户生效（多用户/分身） |
+标签语义（冒号后缀，与上游 README 定义一致；未知标签忽略以保持前向兼容）：
 
-**解析规则**：`PACKAGES_THISDEVICE` 优先；其余按 JSON 键序，第一个提到该包的 profile 获胜
-（device 字段、cpu、gpu 分别取首个非空值）。`cpu_spoof.blacklist` 命中时剥离 cpu 伪装。
+| 标签 | 含义 | 本引擎 |
+|---|---|---|
+| `blocked` | **强制真实 CPU**（README 原文 "force real CPU"；WebUI 显示为 "Block CPU Spoof"）。只剥离 cpu aspect，不影响 device/gpu/aid/serial/tz | ✅ |
+| `cpu=<key>` | 用 `CPU/cpuinfo_<key>` 替换 `/proc/cpuinfo` | ✅ |
+| `gpu=<key>` | 用 `GPU/manifest.json` 中 `<key>` 的 vendor/renderer | ✅ |
+| `with_cpu` | 旧版兼容标签：等价 `cpu=sd8elite`（与 WebUI 回退值一致；现行 WebUI 不再写入，仅解析） | ✅ |
+| `cow` | 空操作（本引擎 hook 本就是进程局部） | ✅ 空操作 |
+| `aid` | 按 `ANDROID_ID` 种子 + 包名派生每 App ID | ⚠️ 部分（见 §6.1） |
+| `serial` | 按种子 + 包名派生每 App 序列号（`ro.serialno`） | ✅ |
+| `tz=<zone>` | 每 App 时区（`persist.sys.timezone`） | ⚠️ 部分（见 §6.2） |
+| `user=<id>` | **扩展**：仅对指定 Android 用户生效（多用户/分身） | ✅ |
+| `nolog` | 舒适化开关：该 App 不打 INFO 日志（告警/错误仍打印） | ✅ |
+| `dnd` / `dab` / `kso` / `dpi=<n>` | 上游 controller 舒适化调节 | ❌ 已解析，`status` 报告 |
+| `gaid` `appset` `drm` `imei` `sim=<c>` `simx=<c>` `lang=<l>` `ua=<p>` `uptime=<s>` `sensor` `webfp` `tensorfeat` `gps=<lat,lng>` `proxy` `mock` `vpn` `vpns` `hidedev` | 上游 PRO 标签 | ❌ 已解析，`status` 报告（原因见 §3） |
+
+**解析规则**：
+1. `PACKAGES_THISDEVICE` 最先扫描（文档约定的优先级）；其余按 JSON 键序。
+2. **按 aspect 独立合并**：device 字段、cpu、gpu、aid、serial、tz 分别取扫描序中
+   第一个提供该 aspect 的 profile。`THISDEVICE` 的 `_DEVICE` 即使是空 Map 也计入
+   “已提供”（= 不伪装设备），从而正确屏蔽后续 profile。
+3. `:blocked` 出现在任何条目（且该条目没有显式 `cpu=`）→ 该包**最终不伪装 CPU**
+   （与全局 `cpu_spoof.blacklist` 同效；跨 profile 时 blocked 优先）。
+4. `cpu_spoof.cpu_only_packages` 命中 → 只伪装 CPU，不伪装设备。
 
 ## 5. 构建
 
@@ -146,9 +171,14 @@ cmake --build build      # 产出 libspoof.so → 复制为 module/zygisk/arm64-
 
 ```bash
 /data/adb/modules/COPG/controller perms    # 修复配置权限/SELinux 上下文
-/data/adb/modules/COPG/controller status   # 查看配置概要
+/data/adb/modules/COPG/controller status   # 配置概要 + 校验（缺失 profile/未实现标签）
+/data/adb/modules/COPG/controller check    # 仅校验，有问题返回非零
 logcat -s COPGModule                       # 引擎日志（hook 命中/派生 ID/错误）
 ```
+
+`status` 的校验项：`cpu=<key>` 是否有对应 `CPU/cpuinfo_<key>` 文件、`gpu=<key>`
+是否在 `GPU/manifest.json` 中、配置里用到了哪些本引擎未实现的标签（逐包列出）。
+新启动的 App 进程会自动读到最新 `COPG.json`（配置在 fork 时加载），无需重启设备。
 
 ## 6. 已知限制与后续路线
 
@@ -156,12 +186,18 @@ logcat -s COPGModule                       # 引擎日志（hook 命中/派生 I
    进程内 PLT hook 无法拦截。完整实现需要 App 进程内的 Java hook
    （`hookJniNativeMethods` 可覆盖 JNI 方法，但 `Settings.Secure.getString` 是纯 Java
    → binder → system_server）。路线：ART 方法 hook 或 system_server 侧 hook，单独立项。
-2. **GPU 覆盖面**：只伪装 `glGetString(GL_VENDOR/GL_RENDERER)`。
+2. **`tz=<zone>`（时区）**：hook `persist.sys.timezone` 覆盖 libcore 的默认时区解析；
+   但 App 若显式调用 `TimeZone.setDefault()` 或缓存了时区对象则不受影响。
+3. **GPU 覆盖面**：只伪装 `glGetString(GL_VENDOR/GL_RENDERER)`。
    `eglQueryString`、GL 扩展列表、`ro.hardware.egl` 等未伪装（不影响渲染，只影响识别）。
-3. **PLT hook 时机**：依赖 Zygisk 实现对后加载库的 hook 传递（ReZygisk / Zygisk Next /
+   Vulkan 应用需另行 hook `vkGetPhysicalDeviceProperties`，暂未实现。
+4. **PLT hook 时机**：依赖 Zygisk 实现对后加载库的 hook 传递（ReZygisk / Zygisk Next /
    Magisk 均支持；`glGetString` 所在 `libGLESv2.so` 在 App 初始化 GL 时才加载）。
-4. **待实现 PRO 功能**（按优先级）：每 App 代理（hook `connect`）、GPS/SIM 伪装、
-   GAID/App Set ID、IMEI（需 `ioctl`/`ril` 侧 hook）、安装补丁与系统控制类（壳脚本层）。
+5. **待实现 PRO 功能**（按优先级）：每 App 代理（hook `connect` + root 侧转发器）、
+   GPS/SIM 伪装、GAID/App Set ID、IMEI（需 `ioctl`/`ril` 侧 hook）、
+   安装补丁与系统控制类（壳脚本层）。
+6. **本机无编译器**：开发沙箱内 zig 工具链损坏、系统无 NDK，真机级编译验证依赖 CI
+   （`json.yml`，NDK r29 三 ABI）。代码经过逐行人工审查 + 契约交叉核对。
 
 ## 7. 与原版的关系
 

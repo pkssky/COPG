@@ -5,11 +5,15 @@
 // preAppSpecialize (zygote privilege, before any app code runs):
 //
 //   _DEVICE fields  ->  props::  (__system_property_* hooks)
+//   :aid            ->  props::  (derived per-app ANDROID_ID, debug-exposed)
+//   :serial         ->  props::  (derived per-app ro.serialno)
+//   :tz=<zone>      ->  props::  (per-app persist.sys.timezone)
 //   cpu=<key>       ->  cpu::    (fopen/open redirect to CPU/cpuinfo_<key>)
 //   gpu=<key>       ->  gpu::    (glGetString vendor/renderer)
 //
-// Packages tagged "blocked" (or absent from the config) get no hooks at all,
-// which also means the module is invisible to them.
+// Packages absent from the config — or tagged :blocked / :nolog where
+// applicable — get no hooks (or no logs), so the module stays invisible to
+// everything the user did not opt in.
 #include "config.hpp"
 #include "cpu.hpp"
 #include "gpu_spoof.hpp"
@@ -30,12 +34,13 @@ namespace {
 copg::Config g_config;
 bool g_config_ready = false;
 
-// Derive a stable per-app ANDROID_ID (16 hex chars) from the profile seed and
-// the package name: FNV-1a 64 over "<seed>:<package>". Same inputs always
-// produce the same id, different packages get different ids.
-std::string derive_android_id(const std::string &seed, const std::string &package) {
+// Stable per-app value derivation: FNV-1a 64 over "<domain>:<seed>:<package>",
+// rendered as 16 lowercase hex chars. Same inputs always produce the same
+// value; different packages (or domains) get different values.
+std::string derive_hex(const char *domain, const std::string &seed,
+                       const std::string &package) {
     unsigned long long h = 1469598103934665603ULL;  // FNV-1a 64 offset basis
-    std::string s = seed + ":" + package;
+    std::string s = std::string(domain) + ":" + seed + ":" + package;
     for (unsigned char c : s) {
         h ^= c;
         h *= 1099511628211ULL;  // FNV-1a 64 prime
@@ -43,6 +48,14 @@ std::string derive_android_id(const std::string &seed, const std::string &packag
     char buf[17];
     snprintf(buf, sizeof(buf), "%016llx", h);
     return std::string(buf, 16);
+}
+
+std::string derive_android_id(const std::string &seed, const std::string &package) {
+    return derive_hex("aid", seed, package);
+}
+
+std::string derive_serial(const std::string &seed, const std::string &package) {
+    return derive_hex("serial", seed, package);
 }
 
 class COPGModule : public zygisk::ModuleBase {
@@ -91,47 +104,61 @@ class COPGModule : public zygisk::ModuleBase {
             COPG_LOGD("%s: not configured, staying inert", package.c_str());
             return;
         }
-        if (r.blocked) {
-            COPG_LOGI("%s: blocked, staying inert", package.c_str());
-            return;
-        }
+
+        // :nolog — controller comfort toggle honoured here: no per-package INFO
+        // logs for this app (warnings and errors still print).
+        bool quiet = r.nolog;
+        for (const auto &u : r.unsupported)
+            COPG_LOGW("%s: tag ':%s' is not implemented by the open-source engine",
+                      package.c_str(), u.c_str());
 
         bool hooked = false;
 
-        // ── Device props ────────────────────────────────────────────────
+        // ── Device props (:aid / :serial / :tz feed the same table) ─────────
         const copg::DeviceProfile *dev = r.cpu_only ? nullptr : r.device;
-        if ((dev && !dev->empty()) || (r.tags && r.tags->aid)) {
-            std::string aid;
-            if (r.tags && r.tags->aid) {
-                std::string seed = dev && dev->count("ANDROID_ID") ? dev->at("ANDROID_ID") : "";
-                aid = derive_android_id(seed, package);
-                COPG_LOGI("%s: derived ANDROID_ID %s", package.c_str(), aid.c_str());
-            }
-            copg::props::set_state(dev, aid);
+        bool needs_props = (dev && !dev->empty()) || r.aid || r.serial || !r.tz.empty();
+        if (needs_props) {
+            // _DEVICE's ANDROID_ID field doubles as the derivation seed.
+            std::string seed = dev && dev->count("ANDROID_ID") ? dev->at("ANDROID_ID") : "";
+            std::string aid, serial;
+            if (r.aid) aid = derive_android_id(seed, package);
+            // A static SERIAL field wins over the derived one.
+            if (r.serial && !(dev && dev->count("SERIAL")))
+                serial = derive_serial(seed, package);
+            copg::props::set_state(dev, aid, serial, r.tz);
             copg::props::register_hooks(api_);
             hooked = true;
+            if (!quiet) {
+                if (!aid.empty()) COPG_LOGI("%s: derived ANDROID_ID %s", package.c_str(), aid.c_str());
+                if (!serial.empty()) COPG_LOGI("%s: derived serial %s", package.c_str(), serial.c_str());
+                if (!r.tz.empty()) COPG_LOGI("%s: timezone -> %s", package.c_str(), r.tz.c_str());
+            }
         }
 
-        // ── CPU profile ─────────────────────────────────────────────────
-        if (r.tags && !r.tags->cpu_key.empty()) {
-            if (copg::cpu::set_profile(r.tags->cpu_key)) {
+        // ── CPU profile (cpu=<key>; :blocked / blacklist already stripped) ──
+        if (!r.cpu_key.empty()) {
+            if (copg::cpu::set_profile(r.cpu_key)) {
                 copg::cpu::register_hooks(api_);
                 hooked = true;
             }
         }
 
         // ── GPU identity ────────────────────────────────────────────────
-        if (r.tags && !r.tags->gpu_key.empty()) {
-            if (copg::gpu::set_key(r.tags->gpu_key)) {
+        if (!r.gpu_key.empty()) {
+            if (copg::gpu::set_key(r.gpu_key)) {
                 copg::gpu::register_hooks(api_);
                 hooked = true;
             }
         }
 
         if (hooked) {
+            // pltHookCommit must always run when hooks were registered; :nolog
+            // only silences the per-package log line.
             bool ok = api_->pltHookCommit();
-            COPG_LOGI("%s (user %d): hooks committed=%d", package.c_str(), user_id,
-                      ok ? 1 : 0);
+            if (!quiet)
+                COPG_LOGI("%s (user %d): hooks committed=%d cpu=%s gpu=%s", package.c_str(),
+                          user_id, ok ? 1 : 0, r.cpu_key.empty() ? "-" : r.cpu_key.c_str(),
+                          r.gpu_key.empty() ? "-" : r.gpu_key.c_str());
         }
     }
 

@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <pthread.h>
+#include <unordered_map>
 
 namespace copg {
 namespace props {
@@ -22,8 +23,9 @@ using property_get_fn = int (*)(const char *name, char *value);
 read_callback_entry g_real_read_callback = nullptr;
 property_get_fn g_real_property_get = nullptr;
 
-// name -> spoofed value. Built once per process in set_state().
-std::map<std::string, std::string> g_spoof;
+// name -> spoofed value. Built once per process in set_state(); read on every
+// property access in the process, hence the hash map (see props.hpp).
+std::unordered_map<std::string, std::string> g_spoof;
 
 // Field name (as written in _DEVICE) -> system properties it feeds.
 struct FieldMap {
@@ -63,21 +65,26 @@ const FieldMap kFieldMap[] = {
 
 // Caller's callback for the in-flight __system_property_read_callback call.
 // thread_local: the real implementation never re-enters on the same thread.
+// Nested calls (a property read triggered from inside another one) are handled
+// by saving/restoring the previous value — see hook_read_callback.
 thread_local read_callback_fn t_caller_cb = nullptr;
 
 int hook_read_callback(prop_info_t *pi, read_callback_fn cb, void *cookie) {
+    if (!g_real_read_callback) return 0;
+    read_callback_fn prev = t_caller_cb;  // nesting-safe: restore afterwards
     t_caller_cb = cb;
     auto forward = [](void *c, const char *name, const char *value, unsigned int serial) {
         const char *sub = lookup(name);
         t_caller_cb(c, name, sub ? sub : value, serial);
     };
     int rc = g_real_read_callback(pi, forward, cookie);
-    t_caller_cb = nullptr;
+    t_caller_cb = prev;
     return rc;
 }
 
 int hook_property_get(const char *name, char *value) {
-    const char *sub = lookup(name);
+    if (!g_real_property_get) return 0;
+    const char *sub = name ? lookup(name) : nullptr;
     if (sub) {
         // bionic copies at most PROP_VALUE_MAX (92) bytes incl. NUL.
         size_t len = strlen(sub);
@@ -97,7 +104,8 @@ const char *lookup(const char *name) {
     return it == g_spoof.end() ? nullptr : it->second.c_str();
 }
 
-void set_state(const DeviceProfile *device, const std::string &android_id) {
+void set_state(const DeviceProfile *device, const std::string &android_id,
+               const std::string &serial, const std::string &timezone) {
     g_spoof.clear();
     if (device) {
         for (const auto &field : *device) {
@@ -113,6 +121,17 @@ void set_state(const DeviceProfile *device, const std::string &android_id) {
         // spoofed with PLT hooks alone; we expose the derived value for
         // native readers and log it for debugging.
         g_spoof["persist.sys.copg.aid"] = android_id;
+    }
+    if (!serial.empty()) {
+        // Per-app serial (:serial tag). A static SERIAL field in _DEVICE maps
+        // through kFieldMap above and takes precedence over this derivation.
+        g_spoof["ro.serialno"] = serial;
+        g_spoof["ro.boot.serialno"] = serial;
+    }
+    if (!timezone.empty()) {
+        // Per-app timezone (:tz=<zone>). libcore resolves the default zone via
+        // this property (system_server writes it on tz changes).
+        g_spoof["persist.sys.timezone"] = timezone;
     }
     COPG_LOGI("props: %zu spoofed properties armed", g_spoof.size());
 }

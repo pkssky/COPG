@@ -1,12 +1,14 @@
 // COPG open-source engine — COPG.json parser.
 //
 // Uses nlohmann/json with ordered semantics: the WebUI documents that key
-// insertion order is meaningful (first profile mentioning a package wins),
-// so we parse with ordered_json to preserve file order.
+// insertion order is meaningful, so we parse with ordered_json to preserve
+// file order. PACKAGES_THISDEVICE is additionally scanned first (documented
+// precedence over every other profile).
 #include "config.hpp"
 #include "paths.hpp"
 #include "strings.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -18,6 +20,19 @@ namespace copg {
 namespace {
 
 using ordered_json = nlohmann::ordered_json;
+
+// Upstream PRO / comfort tags this engine does NOT implement. They are parsed
+// (and reported by `controller status`) so configs stay forward compatible and
+// users get a clear signal about which spoofs won't take effect. See
+// docs/OPEN_SOURCE_ENGINE.md for why each one needs more than in-process hooks.
+const char *kUnsupportedTags[] = {
+    "gaid", "appset", "drm", "imei", "sensor", "webfp", "tensorfeat",
+    "proxy", "mock", "vpn", "vpns", "hidedev",          // PRO identity / network
+    "dnd", "dab", "kso",                                 // controller comfort tweaks
+};
+const char *kUnsupportedValueTags[] = {                 // value-carrying variants
+    "sim=", "simx=", "lang=", "ua=", "uptime=", "gps=", "dpi=",
+};
 
 // Parse "pkg:tag:tag:..." into package + tags. Unknown tags are ignored.
 PackageEntry parse_entry(const std::string &raw) {
@@ -36,16 +51,37 @@ PackageEntry parse_entry(const std::string &raw) {
             entry.tags.cow = true;
         } else if (t == "aid") {
             entry.tags.aid = true;
+        } else if (t == "serial") {
+            entry.tags.serial = true;
+        } else if (t == "nolog") {
+            entry.tags.nolog = true;
         } else if (starts_with(t, "cpu=")) {
             entry.tags.cpu_key = t.substr(4);
         } else if (starts_with(t, "gpu=")) {
             entry.tags.gpu_key = t.substr(4);
+        } else if (starts_with(t, "tz=")) {
+            entry.tags.tz = t.substr(3);
         } else if (starts_with(t, "user=")) {
             int id = -1;
             if (std::sscanf(t.c_str() + 5, "%d", &id) == 1) entry.tags.user_id = id;
+        } else {
+            // Known-but-unimplemented upstream tag: keep for diagnostics.
+            bool known = false;
+            for (const char *u : kUnsupportedTags)
+                if (t == u) { known = true; break; }
+            if (!known) {
+                for (const char *u : kUnsupportedValueTags)
+                    if (starts_with(t, u)) { known = true; break; }
+            }
+            if (known) entry.tags.unsupported.push_back(t);
+            // else: truly unknown tag — ignore for forward compatibility.
         }
-        // else: unknown tag — ignore for forward compatibility.
     }
+
+    // Legacy back-compat: a bare "with_cpu" (no cpu=<key>) means the default
+    // profile — byte-identical to the WebUI's `form.cpuModel || 'sd8elite'`.
+    if (entry.tags.with_cpu && entry.tags.cpu_key.empty())
+        entry.tags.cpu_key = kDefaultCpuKey;
     return entry;
 }
 
@@ -73,8 +109,21 @@ Config::Resolved Config::resolve(const std::string &package, int user_id) const 
         if (p == package) { cpu_blacklisted = true; break; }
     }
 
-    // Scan profiles in JSON order; first mention of the package wins.
+    // Scan order: PACKAGES_THISDEVICE first (documented precedence), then the
+    // remaining profiles in JSON appearance order.
+    std::vector<std::string> order;
+    order.reserve(profile_order.size() + 1);
+    if (profiles.count(kThisDevice)) order.push_back(kThisDevice);
     for (const auto &key : profile_order) {
+        if (key != kThisDevice) order.push_back(key);
+    }
+
+    // `blocked` = force real CPU: any entry (other than one that also carries an
+    // explicit cpu=<key> — the WebUI's "with_cpu wins if both") disables cpu
+    // spoof for the package, regardless of what lower-precedence profiles say.
+    bool force_real_cpu = cpu_blacklisted;
+
+    for (const auto &key : order) {
         auto pit = profiles.find(key);
         if (pit == profiles.end()) continue;
         for (const auto &entry : pit->second) {
@@ -83,31 +132,38 @@ Config::Resolved Config::resolve(const std::string &package, int user_id) const 
             // user= filter (extension): skip entries bound to another user.
             if (entry.tags.user_id >= 0 && entry.tags.user_id != user_id) continue;
 
-            if (!r.matched) {
-                r.matched = true;
-                r.tags = &entry.tags;
+            r.matched = true;
+
+            // ── cpu aspect ──────────────────────────────────────────────
+            if (entry.tags.blocked && entry.tags.cpu_key.empty()) {
+                force_real_cpu = true;  // blocked without cpu= : real cpu wins
+            } else if (r.cpu_key.empty() && !entry.tags.cpu_key.empty()) {
+                r.cpu_key = entry.tags.cpu_key;
             }
-            if (entry.tags.blocked) { r.blocked = true; return r; }
+
+            // ── other aspects: first supplier wins ──────────────────────
+            if (r.gpu_key.empty() && !entry.tags.gpu_key.empty()) r.gpu_key = entry.tags.gpu_key;
+            if (!r.aid && entry.tags.aid) r.aid = true;
+            if (!r.serial && entry.tags.serial) r.serial = true;
+            if (r.tz.empty() && !entry.tags.tz.empty()) r.tz = entry.tags.tz;
+            if (!r.cow && entry.tags.cow) r.cow = true;
+            if (!r.nolog && entry.tags.nolog) r.nolog = true;
+            for (const auto &u : entry.tags.unsupported) {
+                if (std::find(r.unsupported.begin(), r.unsupported.end(), u) == r.unsupported.end())
+                    r.unsupported.push_back(u);
+            }
+
+            // Device fields: the first scanned profile that mentions the package
+            // supplies them — including an empty _DEVICE (THISDEVICE's usual
+            // case), which means "no device spoof" and blocks lower profiles.
             if (r.device == nullptr) {
                 auto dit = devices.find(key);
-                if (dit != devices.end() && !dit->second.empty()) {
-                    r.device = &dit->second;
-                }
+                if (dit != devices.end()) r.device = &dit->second;
             }
-            break;  // first entry for this package inside one profile wins
         }
-        if (r.blocked) break;
     }
 
-    // Apply the global cpu blacklist to the resolved tags (strip cpu spoof).
-    if (cpu_blacklisted && r.tags && !r.tags->cpu_key.empty()) {
-        // tags points into the config; copy, strip, and repoint.
-        static thread_local PackageTags patched;
-        patched = *r.tags;
-        patched.cpu_key.clear();
-        patched.with_cpu = false;
-        r.tags = &patched;
-    }
+    if (force_real_cpu) r.cpu_key.clear();
     return r;
 }
 
@@ -149,7 +205,9 @@ bool parse_config(const std::string &text, Config *out, std::string *error) {
                     if (dit.value().is_string()) dev[dit.key()] = dit.value().get<std::string>();
                 }
             }
-            if (!dev.empty()) out->devices[profile] = std::move(dev);
+            // Stored even when empty: presence marks the profile as supplying
+            // the device aspect (empty = explicitly no device spoof).
+            out->devices[profile] = std::move(dev);
             continue;
         }
 

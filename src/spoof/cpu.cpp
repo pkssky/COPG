@@ -29,13 +29,17 @@ openat_fn g_real_openat = nullptr;
 std::string g_profile_path;
 
 // True when `path` is a read of the real cpuinfo.
+// Hot path: fopen/open/openat run for every file the process touches, so
+// reject everything that cannot be /proc/cpuinfo* with a single byte test
+// before the strcmps. path[1] is safe to read once path[0] == '/' (the NUL
+// terminator at index 1 fails the 'p' test).
 bool is_cpuinfo(const char *path) {
-    if (!path) return false;
+    if (!path || path[0] != '/' || path[1] != 'p') return false;
     return strcmp(path, "/proc/cpuinfo") == 0 || strcmp(path, "/proc/self/cpuinfo") == 0;
 }
 
 FILE *hook_fopen(const char *path, const char *mode) {
-    if (is_cpuinfo(path)) {
+    if (!g_profile_path.empty() && is_cpuinfo(path)) {
         COPG_LOGD("cpu: fopen(%s) -> %s", path, g_profile_path.c_str());
         return g_real_fopen(g_profile_path.c_str(), mode);
     }
@@ -43,7 +47,8 @@ FILE *hook_fopen(const char *path, const char *mode) {
 }
 
 FILE *hook_fopen64(const char *path, const char *mode) {
-    if (is_cpuinfo(path)) return g_real_fopen64(g_profile_path.c_str(), mode);
+    if (!g_profile_path.empty() && is_cpuinfo(path))
+        return g_real_fopen64(g_profile_path.c_str(), mode);
     return g_real_fopen64(path, mode);
 }
 
@@ -55,7 +60,7 @@ int hook_open(const char *path, int flags, ...) {
         mode = static_cast<mode_t>(va_arg(ap, int));
         va_end(ap);
     }
-    if (is_cpuinfo(path)) {
+    if (!g_profile_path.empty() && is_cpuinfo(path)) {
         COPG_LOGD("cpu: open(%s) -> %s", path, g_profile_path.c_str());
         return g_real_open(g_profile_path.c_str(), flags, mode);
     }
@@ -71,7 +76,7 @@ int hook_openat(int dirfd, const char *path, int flags, ...) {
         va_end(ap);
     }
     // Only absolute paths can be /proc/cpuinfo; relative paths never are.
-    if (is_cpuinfo(path)) {
+    if (!g_profile_path.empty() && is_cpuinfo(path)) {
         COPG_LOGD("cpu: openat(%s) -> %s", path, g_profile_path.c_str());
         return g_real_openat(dirfd, g_profile_path.c_str(), flags, mode);
     }

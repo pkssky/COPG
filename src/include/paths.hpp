@@ -22,6 +22,11 @@ constexpr const char *kStateDir    = "/data/adb/copg_state";
 // every other profile; its _DEVICE map is usually empty (= no device spoof).
 constexpr const char *kThisDevice  = "THISDEVICE";
 
+// Legacy default CPU profile: a bare "with_cpu" tag (never written by the
+// current WebUI, only parsed for back-compat) means this cpuinfo_<key>.
+// Matches the WebUI fallback (webroot/js/copg-data.js: form.cpuModel || 'sd8elite').
+constexpr const char *kDefaultCpuKey = "sd8elite";
+
 // Key prefixes inside COPG.json.
 constexpr const char *kPkgPrefix    = "PACKAGES_";
 constexpr const char *kDeviceSuffix = "_DEVICE";

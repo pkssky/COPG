@@ -16,9 +16,12 @@
 // Hooks are process-local by design: they exist only inside the target app
 // process and vanish when it dies. No global prop is ever touched, so the
 // "cow" tag (copy-on-write, restore after app exit) is satisfied for free.
+//
+// The lookup table is an unordered_map: __system_property_get /
+// read_callback fire on every property read in the process, so the hot path
+// must be O(1), not O(log n) over a std::map.
 #pragma once
 
-#include <map>
 #include <string>
 
 #include "config.hpp"  // DeviceProfile
@@ -27,10 +30,15 @@
 namespace copg {
 namespace props {
 
-// Arm the spoof table. `device` holds BRAND/MODEL/... (may be nullptr when
-// only the derived ANDROID_ID is needed). `android_id` is the per-app derived
-// id for the "aid" tag (empty = not used).
-void set_state(const DeviceProfile *device, const std::string &android_id);
+// Arm the spoof table.
+//   device     — BRAND/MODEL/... (nullptr = none)
+//   android_id — per-app derived id for the :aid tag (empty = not used)
+//   serial     — per-app derived serial for the :serial tag (empty = not used;
+//                a static SERIAL field inside `device` takes precedence and is
+//                already covered by the field map)
+//   timezone   — zone id for the :tz=<zone> tag (empty = not used)
+void set_state(const DeviceProfile *device, const std::string &android_id,
+               const std::string &serial, const std::string &timezone);
 
 // Register the PLT hooks (call before zygisk::Api::pltHookCommit()).
 void register_hooks(zygisk::Api *api);
