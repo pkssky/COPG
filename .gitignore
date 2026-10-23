@@ -1,3 +1,14 @@
 # local build staging produced by build.sh
 .build/
 *.zip
+
+# NDK / CI build artifacts (compiled binaries must never be committed)
+build/
+controller_arm64
+controller_armv7
+controller_x86_64
+module/zygisk/*.so
+icon_thumb.jpg
+send_telegram.py
+update.json.new
+

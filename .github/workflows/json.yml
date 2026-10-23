@@ -17,7 +17,7 @@ on:
         description: 'Branch to build from'
         type: string
         required: true
-        default: 'rewrite'
+        default: 'JSON'
       title:
         description: 'Custom title for Telegram message'
         type: string
@@ -88,25 +88,29 @@ jobs:
           sudo apt-get install -y build-essential cmake zip curl imagemagick python3 python3-pip upx-ucl
           pip3 install telethon telegraph requests
 
-      - name: Build Unified Controller (All Architectures)
+      - name: Build Controller (All Architectures)
         run: |
+          # Engine sources shared by the controller and the zygisk library.
+          ENGINE_COMMON="src/common/strings.cpp src/common/config.cpp src/common/gpu.cpp"
+          INC="-I src -I src/include -I src/third_party"
+
           echo "Building ARM64..."
           ${{ env.NDK_PATH }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++ \
             -std=c++17 -O3 -Os -fPIE -pie -static-libstdc++ \
             -fdata-sections -ffunction-sections -Wl,--gc-sections \
-            -I src/include src/unified_controller.cpp -o controller_arm64
-          
+            $INC src/controller.cpp $ENGINE_COMMON -llog -o controller_arm64
+
           echo "Building ARMv7..."
           ${{ env.NDK_PATH }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi34-clang++ \
             -std=c++17 -O3 -Os -fPIE -pie -static-libstdc++ \
             -fdata-sections -ffunction-sections -Wl,--gc-sections \
-            -I src/include src/unified_controller.cpp -o controller_armv7
-          
+            $INC src/controller.cpp $ENGINE_COMMON -llog -o controller_armv7
+
           echo "Building x86_64..."
           ${{ env.NDK_PATH }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android34-clang++ \
             -std=c++17 -O3 -Os -fPIE -pie -static-libstdc++ \
             -fdata-sections -ffunction-sections -Wl,--gc-sections \
-            -I src/include src/unified_controller.cpp -o controller_x86_64
+            $INC src/controller.cpp $ENGINE_COMMON -llog -o controller_x86_64
 
           echo "Stripping and compressing binaries..."
           ${{ env.NDK_PATH }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip --strip-unneeded controller_*

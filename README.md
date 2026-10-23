@@ -25,6 +25,14 @@
 
 🌐 Languages / 语言：**English** · [简体中文](README.zh.md)
 
+> ### 🔓 This fork (`pkssky/COPG`) — open-source engine
+> This fork ships a **fully open-source spoofing engine** (`src/`, Apache-2.0): device/CPU/GPU
+> spoofing — including the GPU identity spoofing that is PRO-gated upstream — is reimplemented
+> from scratch and free, with **no license, no binary blobs**. The WebUI, install scripts and
+> `COPG.json` config format are unchanged. PRO-only features that are **not** yet reimplemented
+> (per-app proxy, GPS/SIM, GAID/App Set ID, IMEI, sensor, …) are listed with status in
+> [docs/OPEN_SOURCE_ENGINE.md](docs/OPEN_SOURCE_ENGINE.md).
+
 </div>
 
 ---

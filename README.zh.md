@@ -25,6 +25,13 @@
 
 🌐 语言 / Languages：[English](README.md) · **简体中文**
 
+> ### 🔓 本 fork（`pkssky/COPG`）—— 开源引擎
+> 本 fork 搭载**完全开源的伪装引擎**（`src/`，Apache-2.0）：设备 / CPU / GPU 伪装——
+> 包括上游需要 PRO 授权才能用的 GPU 伪装——均已从零重写，**免费、无许可证、无闭源二进制**。
+> WebUI、安装脚本与 `COPG.json` 配置格式保持不变。尚未重实现的 PRO 功能
+> （每 App 代理、GPS/SIM、GAID/App Set ID、IMEI、传感器等）及其状态见
+> [docs/OPEN_SOURCE_ENGINE.md](docs/OPEN_SOURCE_ENGINE.md)。
+
 </div>
 
 ---
