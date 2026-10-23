@@ -146,19 +146,18 @@ jobs:
           cmake --build ../build/arm64-v8a --verbose > ../cmake_arm64_build.log 2>&1
           bld=$?
           set -e
-          echo "=== config log ==="; cat ../cmake_arm64_config.log
-          echo "=== build log (errors) ==="; grep -iE "error|fatal|Error [0-9]" ../cmake_arm64_build.log | head -40
+          echo "=== build log: errors ==="
+          grep -iE "error|fatal|Error [0-9]" ../cmake_arm64_build.log | head -50 || true
+          echo "=== build log: last 80 lines ==="
+          tail -80 ../cmake_arm64_build.log || true
           # TEMP DIAGNOSTIC: publish full logs to a public branch (readable
           # without API auth) so the exact compiler error can be inspected.
           cd ..
-          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
-          for f in cmake_arm64_config.log cmake_arm64_build.log; do
-            [ -f "$f" ] || continue
-            b=$(git hash-object -w "$f")
-            t=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git mktree)
-            c=$(git -c user.name=ci -c user.email=ci@users.noreply.github.com commit-tree "$t" -m "ci $f ${{ github.sha }}")
-            git push -qf origin "$c:refs/heads/ci-logs" 2>/dev/null || true
-          done
+          b1=$(git hash-object -w cmake_arm64_config.log)
+          b2=$(git hash-object -w cmake_arm64_build.log)
+          t=$(printf '100644 blob %s\tcmake_arm64_config.log\n100644 blob %s\tcmake_arm64_build.log\n' "$b1" "$b2" | git mktree)
+          c=$(git -c user.name=ci -c user.email=ci@users.noreply.github.com commit-tree "$t" -m "ci arm64 logs ${{ github.sha }}") || true
+          git push -qf origin "$c:refs/heads/ci-logs" || echo "LOG PUBLISH FAILED"
           if [ $cfg -ne 0 ] || [ $bld -ne 0 ]; then exit 2; fi
 
       - name: Build Project (armeabi-v7a)
