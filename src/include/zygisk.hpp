@@ -5,9 +5,14 @@
 // RikkaApps/Sui (module/src/main/cpp/include/zygisk.hpp). Implemented by
 // Magisk's built-in Zygisk, Zygisk Next, ReZygisk and NeoZygisk.
 //
-// One-line fix vs upstream: Api::pltHookExclude passed 3 arguments to the
-// 2-parameter api_table entry (does not compile as-is). This engine does not
-// call pltHookExclude; the signature now matches the table.
+// Two documented deviations from the upstream copy, both forced by modern
+// clang (NDK r29 verified):
+// 1. The entry-point declarations place their attributes AFTER extern "C".
+//    Upstream puts them on their own line BEFORE extern "C", which newer
+//    clang rejects with "an attribute list cannot appear here". Same
+//    semantics, different (valid) placement.
+// 2. ModuleBase's default no-op bodies cast unused parameters to void so
+//    -Wunused-parameter (part of -Wextra) stays quiet in every TU.
 
 #pragma once
 
@@ -27,25 +32,25 @@ namespace zygisk {
         // This function is called when the module is loaded into the target process.
         // A Zygisk API handle will be sent as an argument; call utility functions or interface
         // with Zygisk through this handle.
-        virtual void onLoad(Api *api, JNIEnv *env) {}
+        virtual void onLoad(Api *api, JNIEnv *env) { (void) api; (void) env; }
 
         // This function is called before the app process is specialized.
         // At this point, the process just got forked from zygote, but no app specific specialization
         // is applied. This means that the process does not have any sandbox restrictions and
         // still runs with the same privilege of zygote.
-        virtual void preAppSpecialize(AppSpecializeArgs *args) {}
+        virtual void preAppSpecialize(AppSpecializeArgs *args) { (void) args; }
 
         // This function is called after the app process is specialized.
         // At this point, the process has all sandbox restrictions enabled for this application.
         // This means that this function runs as the same privilege of the app's own code.
-        virtual void postAppSpecialize(const AppSpecializeArgs *args) {}
+        virtual void postAppSpecialize(const AppSpecializeArgs *args) { (void) args; }
 
         // This function is called before the system server process is specialized.
-        virtual void preServerSpecialize(ServerSpecializeArgs *args) {}
+        virtual void preServerSpecialize(ServerSpecializeArgs *args) { (void) args; }
 
         // This function is called after the system server process is specialized.
         // At this point, the process runs with the privilege of system_server.
-        virtual void postServerSpecialize(const ServerSpecializeArgs *args) {}
+        virtual void postServerSpecialize(const ServerSpecializeArgs *args) { (void) args; }
     };
 
     struct AppSpecializeArgs {
@@ -183,8 +188,11 @@ void zygisk_companion_entry(int client) { func(client); }
 
 }
 
-[[gnu::visibility("default")]] [[gnu::used]]
-extern "C" void zygisk_module_entry(zygisk::internal::api_table *, JNIEnv *);
+// Attributes must follow extern "C": clang (NDK r29+) rejects an attribute
+// list on its own line before a linkage-specification. The visibility/used
+// attributes still apply to the definition produced by REGISTER_ZYGISK_MODULE.
+extern "C" [[gnu::visibility("default")]] [[gnu::used]]
+void zygisk_module_entry(zygisk::internal::api_table *, JNIEnv *);
 
-[[gnu::visibility("default")]] [[gnu::used]]
-extern "C" void zygisk_companion_entry(int);
+extern "C" [[gnu::visibility("default")]] [[gnu::used]]
+void zygisk_companion_entry(int);
