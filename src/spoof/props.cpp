@@ -17,7 +17,9 @@ using prop_info_t = const void;
 
 using read_callback_fn = void (*)(void *cookie, const char *name,
                                   const char *value, unsigned int serial);
-using read_callback_entry = int (*)(prop_info_t *, read_callback_fn, void *cookie);
+// bionic's __system_property_read_callback returns VOID — the pointer type
+// must match the real symbol exactly (a mismatched return type is UB).
+using read_callback_entry = void (*)(prop_info_t *, read_callback_fn, void *cookie);
 using property_get_fn = int (*)(const char *name, char *value);
 
 read_callback_entry g_real_read_callback = nullptr;
@@ -69,17 +71,16 @@ const FieldMap kFieldMap[] = {
 // by saving/restoring the previous value — see hook_read_callback.
 thread_local read_callback_fn t_caller_cb = nullptr;
 
-int hook_read_callback(prop_info_t *pi, read_callback_fn cb, void *cookie) {
-    if (!g_real_read_callback) return 0;
+void hook_read_callback(prop_info_t *pi, read_callback_fn cb, void *cookie) {
+    if (!g_real_read_callback) return;
     read_callback_fn prev = t_caller_cb;  // nesting-safe: restore afterwards
     t_caller_cb = cb;
     auto forward = [](void *c, const char *name, const char *value, unsigned int serial) {
         const char *sub = lookup(name);
         t_caller_cb(c, name, sub ? sub : value, serial);
     };
-    int rc = g_real_read_callback(pi, forward, cookie);
+    g_real_read_callback(pi, forward, cookie);
     t_caller_cb = prev;
-    return rc;
 }
 
 int hook_property_get(const char *name, char *value) {

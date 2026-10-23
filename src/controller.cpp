@@ -56,11 +56,26 @@ bool write_pid_file() {
 }
 
 // Best-effort chmod + chcon (chcon is a no-op without a matching policy).
+// `path` is only ever built from kCpuDir + a validated directory entry name
+// (see cmd_perms), so it cannot contain shell metacharacters.
 void set_file_meta(const std::string &path, mode_t mode) {
     chmod(path.c_str(), mode);
     std::string cmd = "chcon u:object_r:system_file:s0 " + path + " 2>/dev/null";
     int rc = system(cmd.c_str());
     (void) rc;
+}
+
+// Strict allow-list for directory entry names: cpuinfo profiles are installed
+// from the module ZIP, but a stray file must never be able to smuggle shell
+// metacharacters into set_file_meta()'s system() call.
+bool safe_entry_name(const std::string &name) {
+    if (name.empty() || name.size() > 128) return false;
+    for (unsigned char c : name) {
+        bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                  (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+        if (!ok) return false;
+    }
+    return true;
 }
 
 int cmd_perms() {
@@ -87,6 +102,10 @@ int cmd_perms() {
         while ((de = readdir(d)) != nullptr) {
             std::string name = de->d_name;
             if (name.rfind("cpuinfo_", 0) != 0) continue;
+            if (!safe_entry_name(name)) {
+                COPG_LOGW("perms: skipping suspicious file name: %s", name.c_str());
+                continue;
+            }
             set_file_meta(std::string(copg::kCpuDir) + "/" + name, 0444);
             ++fixed;
         }

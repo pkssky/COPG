@@ -197,8 +197,14 @@ bool parse_config(const std::string &text, Config *out, std::string *error) {
 
         // "PACKAGES_<KEY>" vs "PACKAGES_<KEY>_DEVICE"
         if (ends_with(key, kDeviceSuffix)) {
-            std::string profile = key.substr(strlen(kPkgPrefix),
-                                             key.size() - strlen(kPkgPrefix) - strlen(kDeviceSuffix));
+            // Guard the subtraction below: a key like "PACKAGES_DEVICE" (no
+            // profile name) would underflow the count to a huge size_t and
+            // silently produce a bogus profile name.
+            size_t prefix_len = strlen(kPkgPrefix);
+            size_t suffix_len = strlen(kDeviceSuffix);
+            std::string profile = key.size() > prefix_len + suffix_len
+                ? key.substr(prefix_len, key.size() - prefix_len - suffix_len)
+                : std::string();
             DeviceProfile dev;
             if (it.value().is_object()) {
                 for (auto dit = it.value().begin(); dit != it.value().end(); ++dit) {
