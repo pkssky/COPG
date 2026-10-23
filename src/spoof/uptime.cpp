@@ -46,14 +46,6 @@ bool is_shifted(clockid_t clk) {
     }
 }
 
-int64_t now_ns() {
-    // Only ever called from set_offset(), which runs before the hooks are
-    // registered — so the direct libc call cannot recurse into our hook.
-    struct timespec ts{};
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return static_cast<int64_t>(ts.tv_sec) * 1000000000LL + ts.tv_nsec;
-}
-
 void shift_timespec(struct timespec *ts) {
     if (!ts) return;
     int64_t ns = static_cast<int64_t>(ts->tv_sec) * 1000000000LL + ts->tv_nsec;
@@ -90,7 +82,15 @@ int hook_clock_gettime64(clockid_t clk, struct timespec64_compat *tp) {
 
 void set_offset(long long sec) {
     if (sec <= 0) return;
-    g_offset_ns = static_cast<int64_t>(sec) * 1000000000LL - now_ns();
+    // Sample the SAME clock family we shift. All monotonic clocks (MONOTONIC /
+    // BOOTTIME / RAW) share the boot epoch, so MONOTONIC is the correct base.
+    // (Sampling CLOCK_REALTIME here was a bug: the epoch-based wall clock made
+    // the offset astronomically large — apps saw ~55 years of uptime.)
+    // Runs before the hooks are registered, so this libc call cannot recurse.
+    struct timespec ts{};
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    int64_t mono_ns = static_cast<int64_t>(ts.tv_sec) * 1000000000LL + ts.tv_nsec;
+    g_offset_ns = mono_ns - static_cast<int64_t>(sec) * 1000000000LL;
     g_armed = true;
     COPG_LOGI("uptime: app will see %lld seconds since boot", sec);
 }

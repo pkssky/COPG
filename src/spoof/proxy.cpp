@@ -51,7 +51,10 @@ namespace proxy {
 namespace {
 
 using socket_fn = int (*)(int, int, int);
-using connect_fn = int (*)(const struct sockaddr *, socklen_t);
+// connect's REAL signature is (int fd, const sockaddr *, socklen_t) — the fd
+// MUST be part of the hook's ABI, otherwise every hooked connect() misreads
+// its arguments (was the cause of total network breakage with :proxy).
+using connect_fn = int (*)(int, const struct sockaddr *, socklen_t);
 using close_fn = int (*)(int);
 
 socket_fn g_real_socket = nullptr;
@@ -248,7 +251,7 @@ bool connect_to_proxy(int fd) {
     int flags = fcntl(fd, F_GETFL);
     if (flags >= 0) fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-    int rc = g_real_connect(reinterpret_cast<const sockaddr *>(&g_proxy_addr),
+    int rc = g_real_connect(fd, reinterpret_cast<const sockaddr *>(&g_proxy_addr),
                             g_proxy_addrlen);
     bool ok = false;
     if (rc == 0) {
@@ -291,7 +294,7 @@ int fallback_direct(int fd, const sockaddr *target, socklen_t len, int sock_flag
         return -1;
     }
     g_real_close(nfd);
-    int rc = g_real_connect(target, len);
+    int rc = g_real_connect(fd, target, len);
     if (sock_flags >= 0) fcntl(fd, F_SETFL, sock_flags);
     return rc;
 }
@@ -337,34 +340,36 @@ int hook_close(int fd) {
     return g_real_close(fd);
 }
 
-int hook_connect(const sockaddr *sa, socklen_t len) {
-    if (!g_armed || !g_real_connect || !sa || len < sizeof(sockaddr) ||
-        (sa->sa_family != AF_INET && sa->sa_family != AF_INET6) ||
-        addr_is_loopback(sa) || addr_is_proxy(sa)) {
-        return g_real_connect(sa, len);
+int hook_connect(int fd, const sockaddr *sa, socklen_t len) {
+    // Candidate for proxying: a connect on THIS thread's single tracked,
+    // still-unconnected stream socket, to a non-loopback non-proxy target.
+    const bool proxyable = g_armed && g_real_connect && sa &&
+                           len >= sizeof(sockaddr) &&
+                           (sa->sa_family == AF_INET || sa->sa_family == AF_INET6) &&
+                           !addr_is_loopback(sa) && !addr_is_proxy(sa) &&
+                           fd == t_tls.pending_fd && t_tls.pending_count == 1;
+    if (!proxyable) {
+        // Pass through — but a connect on the tracked fd consumes it (it is no
+        // longer "unconnected"), otherwise pending_count only ever grows and
+        // the thread silently stops being proxied forever (leak fix).
+        if (g_armed && fd == t_tls.pending_fd) tls_reset();
+        return g_real_connect(fd, sa, len);
     }
 
     const int saved_errno = errno;
-
-    // Identify the fd: exactly one unconnected tracked socket on this thread.
-    int fd = t_tls.pending_fd;
-    if (fd < 0 || t_tls.pending_count != 1) {
-        errno = saved_errno;
-        return g_real_connect(sa, len);
-    }
 
     int type = 0;
     socklen_t tl = sizeof(type);
     if (getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &tl) != 0) {
         tls_reset();  // stale fd (closed without close())
         errno = saved_errno;
-        return g_real_connect(sa, len);
+        return g_real_connect(fd, sa, len);
     }
     const int sock_type = type & ~(SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (sock_type != SOCK_STREAM) {
         tls_reset();
         errno = saved_errno;
-        return g_real_connect(sa, len);
+        return g_real_connect(fd, sa, len);
     }
     sockaddr peer{};
     socklen_t pl = sizeof(peer);
@@ -372,7 +377,7 @@ int hook_connect(const sockaddr *sa, socklen_t len) {
         // Already connected (or not a connectable socket): not ours to proxy.
         tls_reset();
         errno = saved_errno;
-        return g_real_connect(sa, len);
+        return g_real_connect(fd, sa, len);
     }
     int protocol = 0;
     socklen_t prl = sizeof(protocol);
@@ -384,12 +389,13 @@ int hook_connect(const sockaddr *sa, socklen_t len) {
         COPG_LOGD("proxy: endpoint host unresolved, going direct");
         tls_reset();
         errno = saved_errno;
-        return g_real_connect(sa, len);
+        return g_real_connect(fd, sa, len);
     }
 
     // ── connect the fd to the proxy ─────────────────────────────────────────
     if (!connect_to_proxy(fd)) {
         int rc = fallback_direct(fd, sa, len, sock_flags, sock_type, protocol);
+        tls_reset();
         errno = rc == 0 ? saved_errno : errno;
         return rc;
     }
