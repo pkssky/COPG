@@ -135,30 +135,13 @@ jobs:
         run: |
           mkdir -p build/arm64-v8a
           cd src
-          set +e
           cmake -S . -B ../build/arm64-v8a \
             -DCMAKE_TOOLCHAIN_FILE=${{ env.NDK_PATH }}/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-34 \
             -DANDROID_STL=c++_static \
-            -DCMAKE_MAKE_PROGRAM=/usr/bin/make > ../cmake_arm64_config.log 2>&1
-          cfg=$?
-          cmake --build ../build/arm64-v8a --verbose > ../cmake_arm64_build.log 2>&1
-          bld=$?
-          set -e
-          echo "=== build log: errors ==="
-          grep -iE "error|fatal|Error [0-9]" ../cmake_arm64_build.log | head -50 || true
-          echo "=== build log: last 80 lines ==="
-          tail -80 ../cmake_arm64_build.log || true
-          # TEMP DIAGNOSTIC: publish full logs to a public branch (readable
-          # without API auth) so the exact compiler error can be inspected.
-          cd ..
-          b1=$(git hash-object -w cmake_arm64_config.log)
-          b2=$(git hash-object -w cmake_arm64_build.log)
-          t=$(printf '100644 blob %s\tcmake_arm64_config.log\n100644 blob %s\tcmake_arm64_build.log\n' "$b1" "$b2" | git mktree)
-          c=$(git -c user.name=ci -c user.email=ci@users.noreply.github.com commit-tree "$t" -m "ci arm64 logs ${{ github.sha }}") || true
-          git push -qf origin "$c:refs/heads/ci-logs" || echo "LOG PUBLISH FAILED"
-          if [ $cfg -ne 0 ] || [ $bld -ne 0 ]; then exit 2; fi
+            -DCMAKE_MAKE_PROGRAM=/usr/bin/make
+          cmake --build ../build/arm64-v8a
 
       - name: Build Project (armeabi-v7a)
         run: |

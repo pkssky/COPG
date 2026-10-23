@@ -13,6 +13,10 @@
 //    semantics, different (valid) placement.
 // 2. ModuleBase's default no-op bodies cast unused parameters to void so
 //    -Wunused-parameter (part of -Wextra) stays quiet in every TU.
+// 3. Api's out-of-line member definitions below are marked inline. Upstream
+//    omits it (their module compiles a single TU that includes this header);
+//    this engine has four such TUs, and without inline the linker rejects
+//    the duplicate symbol definitions.
 
 #pragma once
 
@@ -167,22 +171,22 @@ void zygisk_companion_entry(int client) { func(client); }
 
     }
 
-    int Api::connectCompanion() {
+    inline int Api::connectCompanion() {
         return impl->connectCompanion(impl->_this);
     }
-    void Api::setOption(Option opt) {
+    inline void Api::setOption(Option opt) {
         impl->setOption(impl->_this, opt);
     }
-    void Api::hookJniNativeMethods(JNIEnv *env, const char *className, JNINativeMethod *methods, int numMethods) {
+    inline void Api::hookJniNativeMethods(JNIEnv *env, const char *className, JNINativeMethod *methods, int numMethods) {
         impl->hookJniNativeMethods(env, className, methods, numMethods);
     }
-    void Api::pltHookRegister(const char *regex, const char *symbol, void *newFunc, void **oldFunc) {
+    inline void Api::pltHookRegister(const char *regex, const char *symbol, void *newFunc, void **oldFunc) {
         impl->pltHookRegister(regex, symbol, newFunc, oldFunc);
     }
-    void Api::pltHookExclude(const char *regex, const char *symbol) {
+    inline void Api::pltHookExclude(const char *regex, const char *symbol) {
         impl->pltHookExclude(regex, symbol);
     }
-    bool Api::pltHookCommit() {
+    inline bool Api::pltHookCommit() {
         return impl->pltHookCommit();
     }
 
