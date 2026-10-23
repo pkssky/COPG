@@ -1,6 +1,18 @@
 name: json
 
 on:
+  # Auto-build on engine/module changes so every push is compile-validated by
+  # the NDK toolchain. The upload/release/telegram steps below are all gated on
+  # workflow_dispatch inputs, so a push run stops after the artifact upload.
+  push:
+    branches:
+      - JSON
+    paths:
+      - 'src/**'
+      - 'module/**'
+      - 'webroot/**'
+      - 'build.sh'
+      - '.github/workflows/json.yml'
   workflow_dispatch:
     inputs:
       upload_to_release:
